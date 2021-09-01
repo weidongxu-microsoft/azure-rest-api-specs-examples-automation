@@ -1,0 +1,11 @@
+{
+    "specsPath": "c:/github/azure-rest-api-specs",
+    "sdkExamplesPath": "c:/github_lab/azure-rest-api-specs-examples",
+    "sdkPath": "c:/github_lab/azure-rest-api-specs-examples-automation/temp/temp1/azure-sdk-for-java",
+    "tempPath": "c:/github_lab/azure-rest-api-specs-examples-automation/temp/temp1",
+    "release": {
+        "tag": "azure-resourcemanager-datafactory_1.0.0-beta.5",
+        "package": "azure-resourcemanager-datafactory",
+        "version": "1.0.0-beta.5"
+    }
+}
