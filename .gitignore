@@ -138,4 +138,6 @@ dmypy.json
 cython_debug/
 
 .idea/
-temp/
+
+# Temporary working directory
+tmp/

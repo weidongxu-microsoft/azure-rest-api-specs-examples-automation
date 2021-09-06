@@ -96,11 +96,20 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         sdk_repo_path = path.join(tmp_path, 'sdk')
         spec_repo_path = '/mnt/c/github/azure-rest-api-specs'
 
+        cmd = ['git', 'clone',
+               '--depth', '1',
+               operation.sdk_examples_repository, example_repo_path]
         logging.info(f'Checking out repository: {operation.sdk_examples_repository}')
-        subprocess.check_call(['git', 'clone', operation.sdk_examples_repository, example_repo_path], cwd=tmp_path)
+        logging.info('Command line: ' + ' '.join(cmd))
+        subprocess.check_call(cmd, cwd=tmp_path)
 
+        cmd = ['git', 'clone',
+               '--depth', '1',
+               '--branch', release.tag,
+               sdk.repository, sdk_repo_path]
         logging.info(f'Checking out repository: {sdk.repository}')
-        subprocess.check_call(['git', 'clone', sdk.repository, sdk_repo_path], cwd=tmp_path)
+        logging.info('Command line: ' + ' '.join(cmd))
+        subprocess.check_call(cmd, cwd=tmp_path)
 
         input_json_path = path.join(tmp_path, 'input.json')
         output_json_path = path.join(tmp_path, 'output.json')
@@ -167,7 +176,9 @@ def process():
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        datefmt='%Y-%m-%d %X')
     global base_dir
     base_dir = path.abspath(path.join(path.abspath(os.path.dirname(sys.argv[0])), '..'))
 

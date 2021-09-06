@@ -232,7 +232,9 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s %(levelname)s %(message)s',
+                        datefmt='%Y-%m-%d %X')
 
     parser = argparse.ArgumentParser(description='Requires 2 arguments, path of "input.json" and "output.json".')
     parser.add_argument('paths', metavar='path', type=str, nargs=2,
