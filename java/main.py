@@ -204,7 +204,7 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
                 with open(filepath, encoding='utf-8') as f:
                     lines = f.readlines()
 
-                logging.info(f'Processing java aggreated example: {filepath}')
+                logging.info(f'Processing Java aggregated sample: {filepath}')
 
                 if is_aggregated_java_example(lines):
                     aggregated_java_example = break_down_aggregated_java_example(lines)
