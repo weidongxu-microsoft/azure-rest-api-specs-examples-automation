@@ -6,7 +6,7 @@ import logging
 import dataclasses
 from typing import List, Dict
 
-namespace = "com.azure.resourcemanager"
+namespace = 'com.azure.resourcemanager'
 
 operation_id_key = '* operationId: '
 api_version_key = '* api-version: '
