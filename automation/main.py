@@ -16,6 +16,8 @@ import requests
 github_token: str = os.environ.get('GITHUB_TOKEN')
 
 clean_tmp_dir: bool = False
+tmp_example_folder: str = 'example'
+tmp_sdk_folder: str = 'sdk'
 
 base_dir: str = '.'
 
@@ -85,6 +87,8 @@ def load_configuration(base_dir: str) -> Configuration:
 
 
 def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release):
+    # process per release
+
     logging.info(f"Processing release: {release.tag}")
 
     tmp_root_path = path.join(base_dir, 'tmp')
@@ -92,10 +96,11 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
     tmp_path = tempfile.mkdtemp(prefix='tmp', dir=tmp_root_path)
     logging.info(f'Work directory: {tmp_path}')
     try:
-        example_repo_path = path.join(tmp_path, 'example')
-        sdk_repo_path = path.join(tmp_path, 'sdk')
+        example_repo_path = path.join(tmp_path, tmp_example_folder)
+        sdk_repo_path = path.join(tmp_path, tmp_sdk_folder)
         spec_repo_path = '/mnt/c/github/azure-rest-api-specs'
 
+        # checkout azure-rest-api-specs-examples repo
         cmd = ['git', 'clone',
                '--depth', '1',
                operation.sdk_examples_repository, example_repo_path]
@@ -103,6 +108,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         logging.info('Command line: ' + ' '.join(cmd))
         subprocess.check_call(cmd, cwd=tmp_path)
 
+        # checkout sdk repo
         cmd = ['git', 'clone',
                '--depth', '1',
                '--branch', release.tag,
@@ -111,6 +117,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         logging.info('Command line: ' + ' '.join(cmd))
         subprocess.check_call(cmd, cwd=tmp_path)
 
+        # prepare input.json
         input_json_path = path.join(tmp_path, 'input.json')
         output_json_path = path.join(tmp_path, 'output.json')
         with open(input_json_path, 'w', encoding='utf-8') as f_out:
@@ -128,17 +135,23 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             logging.info(f'Input JSON for worker: {input_json}')
             json.dump(input_json, f_out, indent=2)
 
+        # run script
         logging.info(f'Running worker: {sdk.script.run}')
         subprocess.check_call([sdk.script.run, input_json_path, output_json_path], cwd=base_dir)
+    except subprocess.CalledProcessError as error:
+        logging.error(f'Error: {error}')
     finally:
         if clean_tmp_dir:
             shutil.rmtree(tmp_path, ignore_errors=True)
 
 
 def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
+    # process for sdk
+
     logging.info(f"Processing sdk: {sdk.name}")
 
     releases = []
+    # since there is no ordering from github, just get all releases (exclude draft=True), and hope paging is correct
     page = 1
     while True:
         request_uri = f'https://api.github.com/repos/{sdk.repository_owner}/{sdk.repository_name}' \

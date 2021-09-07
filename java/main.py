@@ -57,6 +57,8 @@ def get_sdk_name_from_package(package: str) -> str:
 
 
 def load_example_references(specs_path: str) -> Dict[ExampleReference, str]:
+    # load example reference from specs (to be removed)
+
     logging.info('Loading example info from azure-rest-api-specs')
     example_references = {}
     for root, dirs, files in os.walk(path.join(specs_path, 'specification')):
@@ -95,6 +97,8 @@ def get_example_references(specs_path: str, json_path: str, swagger: Dict) -> Di
 
 
 def is_aggregated_java_example(lines: List[str]) -> bool:
+    # check metadata to see if the sample Java is a candidate for example extraction
+
     operation_id = None
     api_version = None
     example_name = None
@@ -109,6 +113,8 @@ def is_aggregated_java_example(lines: List[str]) -> bool:
 
 
 def get_java_example_method(lines: List[str], start: int) -> JavaExampleMethodContent:
+    # extract one example method, start from certain line number
+
     operation_id = None
     api_version = None
     example_name = None
@@ -148,6 +154,8 @@ def get_java_example_method(lines: List[str], start: int) -> JavaExampleMethodCo
 
 
 def break_down_aggregated_java_example(lines: List[str]) -> AggregatedJavaExample:
+    # break down sample Java to multiple examples
+
     aggregated_java_example = AggregatedJavaExample([])
     java_example_method = get_java_example_method(lines, 0)
     line_start = java_example_method.line_start
@@ -162,6 +170,8 @@ def break_down_aggregated_java_example(lines: List[str]) -> AggregatedJavaExampl
 
 
 def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> List[str]:
+    # format example
+
     new_lines = []
     skip_head = True
     for line in lines:
@@ -175,6 +185,8 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
 
 
 def format_markdown(doc_reference: str, lines: List[str]) -> str:
+    # format markdown
+
     md_lines = [doc_reference + '\n',
                 '\n',
                 '```java\n']
@@ -204,24 +216,28 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
 
                         logging.info(f'Processing java example: {java_example_method.example_reference.name}')
 
+                        # re-construct the example class, from example method
                         example_lines = aggregated_java_example.class_opening + java_example_method.content\
                             + aggregated_java_example.class_closing
 
                         example_filepath = example_references[java_example_method.example_reference]
                         example_dir, example_filename = path.split(example_filepath)
 
+                        # use Main as class name
                         old_class_name = name.split('.')[0]
                         new_class_name = example_filename.split('.')[0]
                         md_filename = new_class_name + '.md'
                         new_class_name = 'Main'
                         example_lines = format_java(example_lines, old_class_name, new_class_name)
 
+                        # add doc reference to markdown, as guidance for user to configure project and authenticate
                         doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
                                    f'{release.sdk_name}/{release.package}/README.md'
                         doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
                                         f'to your project and authenticate.'
                         md_str = format_markdown(doc_reference, example_lines)
 
+                        # use the examples-java folder for Java example
                         md_dir = example_dir + '-java'
                         md_dir_path = path.join(sdk_examples_path, md_dir)
                         os.makedirs(md_dir_path, exist_ok=True)
