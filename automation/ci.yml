@@ -1,0 +1,19 @@
+trigger: none
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily build
+  branches:
+    include:
+    - main
+
+jobs:
+  - job: Automation
+
+    pool:
+      vmImage: ubuntu-20.04
+
+    steps:
+      - script: |
+          ./automation/main.sh --build-id=$(Build.BuildId)
+        displayName: 'Collect examples'
