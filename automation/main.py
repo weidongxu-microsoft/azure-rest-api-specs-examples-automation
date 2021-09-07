@@ -14,15 +14,14 @@ from typing import List
 import itertools
 import requests
 
-github_token: str = os.environ.get('GITHUB_TOKEN')
+github_token: str
+base_dir: str = '.'
 
 clean_tmp_dir: bool = False
 tmp_folder: str = 'tmp'
 tmp_spec_folder: str = 'spec'
 tmp_example_folder: str = 'example'
 tmp_sdk_folder: str = 'sdk'
-
-base_dir: str = '.'
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -272,17 +271,24 @@ def process(build_id: str):
 
 
 def main():
+    global base_dir
+    global github_token
+
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%Y-%m-%d %X')
-    global base_dir
+
     base_dir = path.abspath(path.join(path.abspath(os.path.dirname(sys.argv[0])), '..'))
 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--build-id', type=str, required=True,
                         help='build ID')
+    parser.add_argument('--github-token', type=str, required=True,
+                        help='GitHub token')
     args = parser.parse_args()
     build_id = args.build_id
+
+    github_token = args.github_token
 
     process(build_id)
 
