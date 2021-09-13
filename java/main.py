@@ -6,11 +6,15 @@ import logging
 import dataclasses
 from typing import List, Dict
 
+from package import MavenPackage
+
 namespace = 'com.azure.resourcemanager'
 
 operation_id_key = '* operationId: '
 api_version_key = '* api-version: '
 example_name_key = '* x-ms-examples: '
+
+tmp_path: str
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -207,6 +211,7 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
                 logging.info(f'Processing Java aggregated sample: {filepath}')
 
                 if is_aggregated_java_example(lines):
+                    maven_package = MavenPackage(tmp_path, release.package, release.version)
                     aggregated_java_example = break_down_aggregated_java_example(lines)
                     for java_example_method in aggregated_java_example.methods:
                         if java_example_method.example_reference not in example_references:
@@ -230,24 +235,34 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
                         new_class_name = 'Main'
                         example_lines = format_java(example_lines, old_class_name, new_class_name)
 
-                        # add doc reference to markdown, as guidance for user to configure project and authenticate
-                        doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
-                                   f'{release.sdk_name}/{release.package}/README.md'
-                        doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
-                                        f'to your project and authenticate.'
-                        md_str = format_markdown(doc_reference, example_lines)
+                        # compile example
+                        java_example = ''.join(example_lines)
+                        result = maven_package.test_example(java_example)
+                        if result.returncode:
+                            # maven package fail, skip this example
+                            logging.error('Maven test failed, skip the example')
+                            logging.info('Maven log:\n' + result.stdout)
+                        else:
+                            # add doc reference to markdown, as guidance for user to configure project and authenticate
+                            doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
+                                       f'{release.sdk_name}/{release.package}/README.md'
+                            doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
+                                            f'to your project and authenticate.'
+                            md_str = format_markdown(doc_reference, example_lines)
 
-                        # use the examples-java folder for Java example
-                        md_dir = example_dir + '-java'
-                        md_dir_path = path.join(sdk_examples_path, md_dir)
-                        os.makedirs(md_dir_path, exist_ok=True)
+                            # use the examples-java folder for Java example
+                            md_dir = example_dir + '-java'
+                            md_dir_path = path.join(sdk_examples_path, md_dir)
+                            os.makedirs(md_dir_path, exist_ok=True)
 
-                        md_file_path = path.join(md_dir_path, md_filename)
-                        with open(md_file_path, 'w', encoding='utf-8') as f:
-                            f.write(md_str)
+                            md_file_path = path.join(md_dir_path, md_filename)
+                            with open(md_file_path, 'w', encoding='utf-8') as f:
+                                f.write(md_str)
 
 
 def main():
+    global tmp_path
+
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%Y-%m-%d %X')
@@ -264,6 +279,7 @@ def main():
     specs_path = config['specsPath']
     sdk_path = config['sdkPath']
     sdk_examples_path = config['sdkExamplesPath']
+    tmp_path = config['tempPath']
 
     release = Release(config['release']['tag'],
                       config['release']['package'],
