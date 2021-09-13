@@ -131,6 +131,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
         # checkout azure-rest-api-specs-examples repo
         cmd = ['git', 'clone',
+               '--quiet',
                '--depth', '1',
                operation.sdk_examples_repository, example_repo_path]
         logging.info(f'Checking out repository: {operation.sdk_examples_repository}')
@@ -139,6 +140,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
         # checkout sdk repo
         cmd = ['git', 'clone',
+               '--quiet',
                '--depth', '1',
                '--branch', release.tag,
                sdk.repository, sdk_repo_path]
@@ -226,6 +228,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
     spec_repo_path = path.join(tmp_root_path, tmp_spec_folder)
     spec_repo = 'https://github.com/Azure/azure-rest-api-specs'
     cmd = ['git', 'clone',
+           '--quiet',
            '--depth', '1',
            spec_repo, spec_repo_path]
     logging.info(f'Checking out repository: spec_repo')
