@@ -10,7 +10,7 @@ from typing import List, Dict
 from package import MavenPackage
 from format import JavaFormat, CompletedJavaCode
 
-base_dir: str = '.'
+script_path: str = '.'
 tmp_path: str
 
 namespace = 'com.azure.resourcemanager'
@@ -193,7 +193,7 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
 
     java_code = ''.join(new_lines)
 
-    java_format = JavaFormat(path.join(base_dir, 'javaformat'))
+    java_format = JavaFormat(path.join(script_path, 'javaformat'))
     result = java_format.format(java_code)
     if result == 0:
         return result.formatted_code.splitlines(keepends=True)
@@ -275,14 +275,14 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
 
 
 def main():
-    global base_dir
+    global script_path
     global tmp_path
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%Y-%m-%d %X')
 
-    base_dir = path.abspath(path.join(path.abspath(os.path.dirname(sys.argv[0])), '..'))
+    script_path = path.abspath(os.path.dirname(sys.argv[0]))
 
     parser = argparse.ArgumentParser(description='Requires 2 arguments, path of "input.json" and "output.json".')
     parser.add_argument('paths', metavar='path', type=str, nargs=2,

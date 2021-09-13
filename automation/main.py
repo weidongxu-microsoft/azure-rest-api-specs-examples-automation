@@ -15,7 +15,7 @@ import itertools
 import requests
 
 github_token: str
-base_dir: str = '.'
+root_path: str = '.'
 
 clean_tmp_dir: bool = False
 tmp_folder: str = 'tmp'
@@ -88,7 +88,7 @@ class Release:
 
 
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
-    with open(path.join(base_dir, 'automation/configuration.json'), 'r', encoding='utf-8') as f_in:
+    with open(path.join(root_path, 'automation/configuration.json'), 'r', encoding='utf-8') as f_in:
         config = json.load(f_in)
 
     now = datetime.now(timezone.utc)
@@ -133,7 +133,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
     logging.info(f'Processing release: {release.tag}')
 
-    tmp_root_path = path.join(base_dir, tmp_folder)
+    tmp_root_path = path.join(root_path, tmp_folder)
     os.makedirs(tmp_root_path, exist_ok=True)
     tmp_path = tempfile.mkdtemp(prefix='tmp', dir=tmp_root_path)
     logging.info(f'Work directory: {tmp_path}')
@@ -182,7 +182,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
         # run script
         logging.info(f'Running worker: {sdk.script.run}')
-        subprocess.check_call([sdk.script.run, input_json_path, output_json_path], cwd=base_dir)
+        subprocess.check_call([sdk.script.run, input_json_path, output_json_path], cwd=root_path)
 
         # commit and create pull request
         # check for new examples
@@ -237,7 +237,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
     # process for sdk
 
     # checkout azure-rest-api-specs repo
-    tmp_root_path = path.join(base_dir, tmp_folder)
+    tmp_root_path = path.join(root_path, tmp_folder)
     os.makedirs(tmp_root_path, exist_ok=True)
     spec_repo_path = path.join(tmp_root_path, tmp_spec_folder)
     spec_repo = 'https://github.com/Azure/azure-rest-api-specs'
@@ -288,14 +288,15 @@ def process(command_line: CommandLineConfiguration):
 
 
 def main():
-    global base_dir
+    global root_path
     global github_token
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s',
                         datefmt='%Y-%m-%d %X')
 
-    base_dir = path.abspath(path.join(path.abspath(os.path.dirname(sys.argv[0])), '..'))
+    script_path = path.abspath(os.path.dirname(sys.argv[0]))
+    root_path = path.abspath(path.join(script_path, '..'))
 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--build-id', type=str, required=True,
