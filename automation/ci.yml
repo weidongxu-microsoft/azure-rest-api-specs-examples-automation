@@ -9,6 +9,7 @@ schedules:
 
 jobs:
   - job: Automation
+    timeoutInMinutes: 360
 
     pool:
       vmImage: ubuntu-20.04
