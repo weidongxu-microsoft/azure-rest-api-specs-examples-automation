@@ -153,7 +153,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
         # checkout sdk repo
         cmd = ['git', 'clone',
-               '-c', 'advice.detachedHead=false'
+               '-c', 'advice.detachedHead=false',
                '--quiet',
                '--depth', '1',
                '--branch', release.tag,
