@@ -7,6 +7,7 @@ import dataclasses
 from typing import List, Dict
 
 from package import MavenPackage
+from format import JavaFormat, CompletedJavaCode
 
 namespace = 'com.azure.resourcemanager'
 
@@ -174,18 +175,29 @@ def break_down_aggregated_java_example(lines: List[str]) -> AggregatedJavaExampl
 
 
 def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> List[str]:
-    # format example
+    # format example as Java code
 
     new_lines = []
     skip_head = True
     for line in lines:
         if not skip_head:
+            # use new class name
             line = line.replace(old_class_name, new_class_name)
             new_lines.append(line)
 
+        # remove package
         if line.startswith('package'):
             skip_head = False
-    return new_lines
+
+    java_code = ''.join(new_lines)
+
+    java_format = JavaFormat('')
+    result = java_format.format(java_code)
+    if result == 0:
+        return result.formatted_code.splitlines(keepends=True)
+    else:
+        logging.error('Java code format failed')
+        return new_lines
 
 
 def format_markdown(doc_reference: str, lines: List[str]) -> str:

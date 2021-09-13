@@ -8,7 +8,7 @@ from package import MavenPackage
 
 class TestMavenPackage(unittest.TestCase):
 
-    def test_correct_sample(self):
+    def test_correct_example(self):
         maven_path = path.abspath('./maven')
         try:
             os.makedirs(maven_path, exist_ok=True)
@@ -35,7 +35,7 @@ public final class Main {
         finally:
             shutil.rmtree(maven_path, ignore_errors=True)
 
-    def test_incorrect_sample(self):
+    def test_incorrect_example(self):
         maven_path = path.abspath('./maven')
         try:
             os.makedirs(maven_path, exist_ok=True)
