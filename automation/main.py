@@ -56,8 +56,8 @@ class SdkConfiguration:
 class OperationConfiguration:
     sdk_examples_repository: str
     build_id: str
-    date_start: datetime = datetime.now(timezone.utc) - timedelta(days=15)
-    date_end: datetime = datetime.now(timezone.utc)
+    date_start: datetime
+    date_end: datetime
 
     @property
     def repository_owner(self) -> str:
@@ -75,15 +75,27 @@ class Configuration:
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
+class CommandLineConfiguration:
+    build_id: str
+    release_in_days: int
+
+
+@dataclasses.dataclass(eq=True, frozen=True)
 class Release:
     tag: str
     package: str
     version: str
 
 
-def load_configuration(build_id: str) -> Configuration:
+def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
     with open(path.join(base_dir, 'automation/configuration.json'), 'r', encoding='utf-8') as f_in:
         config = json.load(f_in)
+
+    now = datetime.now(timezone.utc)
+    operation_configuration = OperationConfiguration(config['sdkExample']['repository'],
+                                                     command_line.build_id,
+                                                     now - timedelta(days=command_line.release_in_days), now)
+
     sdk_configurations = []
     for sdk_config in config['sdkConfigurations']:
         script = Script(sdk_config['script']['run'])
@@ -94,7 +106,8 @@ def load_configuration(build_id: str) -> Configuration:
                                              sdk_config['repository'],
                                              release_tag, script)
         sdk_configurations.append(sdk_configuration)
-    return Configuration(OperationConfiguration(config['sdkExample']['repository'], build_id), sdk_configurations)
+
+    return Configuration(operation_configuration, sdk_configurations)
 
 
 def create_pull_request(operation: OperationConfiguration, title: str, head: str):
@@ -268,8 +281,8 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
         process_release(operation, sdk, release)
 
 
-def process(build_id: str):
-    configuration = load_configuration(build_id)
+def process(command_line: CommandLineConfiguration):
+    configuration = load_configuration(command_line)
     for sdk_configuration in configuration.sdks:
         process_sdk(configuration.operation, sdk_configuration)
 
@@ -289,12 +302,15 @@ def main():
                         help='build ID')
     parser.add_argument('--github-token', type=str, required=True,
                         help='GitHub token')
+    parser.add_argument('--release-in-days', type=int, required=False, default=3,
+                        help='process SDK released within given days')
     args = parser.parse_args()
-    build_id = args.build_id
 
     github_token = args.github_token
 
-    process(build_id)
+    command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days)
+
+    process(command_line_configuration)
 
 
 if __name__ == '__main__':

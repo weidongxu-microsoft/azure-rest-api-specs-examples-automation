@@ -15,5 +15,5 @@ jobs:
 
     steps:
       - script: |
-          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(GITHUB_TOKEN)
+          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(GITHUB_TOKEN) --release-in-days=$(RELEASE_IN_DAYS)
         displayName: 'Collect examples'
