@@ -20,7 +20,7 @@ class JavaFormat:
         os.environ['JAVA_CODE'] = java_example
 
         cmd = ['mvn', '--quiet', 'package', 'exec:java']
-        logging.info('Run mvn package')
+        logging.info('Format java code')
         logging.info('Command line: ' + ' '.join(cmd))
         result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=self.maven_path)
 

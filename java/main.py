@@ -195,7 +195,7 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
 
     java_format = JavaFormat(path.join(script_path, 'javaformat'))
     result = java_format.format(java_code)
-    if result == 0:
+    if result.returncode == 0:
         return result.formatted_code.splitlines(keepends=True)
     else:
         logging.error('Java code format failed')
