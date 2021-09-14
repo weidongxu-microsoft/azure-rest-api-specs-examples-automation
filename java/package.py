@@ -16,20 +16,20 @@ class MavenPackage:
         self.version = version
 
     def test_example(self, java_example: str) -> subprocess.CompletedProcess:
-        tmp_dir = tempfile.TemporaryDirectory(dir=self.tmp_path)
-        maven_path = tmp_dir.name
+        with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir:
+            maven_path = tmp_dir.name
 
-        self.__prepare_workspace(maven_path)
+            self.__prepare_workspace(maven_path)
 
-        example_code_path = path.join(maven_path, 'src', 'main', 'java', 'Main.java')
+            example_code_path = path.join(maven_path, 'src', 'main', 'java', 'Main.java')
 
-        with open(example_code_path, 'w', encoding='utf-8') as f:
-            f.write(java_example)
+            with open(example_code_path, 'w', encoding='utf-8') as f:
+                f.write(java_example)
 
-        cmd = ['mvn', '--no-transfer-progress', 'package']
-        logging.info('Run mvn package')
-        logging.info('Command line: ' + ' '.join(cmd))
-        return subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=maven_path)
+            cmd = ['mvn', '--no-transfer-progress', 'package']
+            logging.info('Run mvn package')
+            logging.info('Command line: ' + ' '.join(cmd))
+            return subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=maven_path)
 
     def __prepare_workspace(self, maven_path: str):
         # make dir for maven and src/main/java

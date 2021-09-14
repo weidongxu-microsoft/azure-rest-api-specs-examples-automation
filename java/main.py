@@ -1,4 +1,5 @@
 import sys
+from concurrent.futures import ThreadPoolExecutor
 import os
 from os import path
 import json
@@ -8,7 +9,7 @@ import dataclasses
 from typing import List, Dict
 
 from package import MavenPackage
-from format import JavaFormat, CompletedJavaCode
+from format import JavaFormat
 
 script_path: str = '.'
 tmp_path: str
@@ -277,13 +278,14 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
     java_format = JavaFormat(path.join(script_path, 'javaformat'))
     java_format.build()
 
-    for root, dirs, files in os.walk(java_examples_path):
-        for name in files:
-            filepath = path.join(root, name)
-            if path.splitext(filepath)[1] == '.java':
-                process_java_example(release, sdk_examples_path, example_references,
-                                     java_format, maven_package,
-                                     name, filepath)
+    with ThreadPoolExecutor(max_workers=30) as executor:
+        for root, dirs, files in os.walk(java_examples_path):
+            for name in files:
+                filepath = path.join(root, name)
+                if path.splitext(filepath)[1] == '.java':
+                    executor.submit(lambda: process_java_example(release, sdk_examples_path, example_references,
+                                                                 java_format, maven_package,
+                                                                 name, filepath))
 
 
 def main():
