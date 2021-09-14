@@ -73,7 +73,7 @@ def get_java_example_method(lines: List[str], start: int) -> JavaExampleMethodCo
 
         line = lines[index]
         if line.strip().startswith(original_file_key):
-            original_file = line.strip()[len(original_file_key):].lower()
+            original_file = line.strip()[len(original_file_key):]
         elif line.startswith('    public static void '):
             # begin of method
             java_example_method.example_relative_path = original_file
