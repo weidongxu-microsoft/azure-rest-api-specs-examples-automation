@@ -216,7 +216,7 @@ def format_markdown(doc_reference: str, lines: List[str]) -> str:
 def process_java_example(release: Release, sdk_examples_path: str,
                          example_references: Dict[ExampleReference, str],
                          java_format: JavaFormat, maven_package: MavenPackage,
-                         filename: str, filepath: str):
+                         filepath: str):
     logging.info(f'Processing Java aggregated sample: {filepath}')
 
     with open(filepath, encoding='utf-8') as f:
@@ -240,7 +240,7 @@ def process_java_example(release: Release, sdk_examples_path: str,
             example_dir, example_filename = path.split(example_filepath)
 
             # use Main as class name
-            old_class_name = filename.split('.')[0]
+            old_class_name = path.basename(filepath).split('.')[0]
             new_class_name = 'Main'
             example_lines = format_java(java_format, example_lines, old_class_name, new_class_name)
 
@@ -282,16 +282,20 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
     java_format.build()
 
     with ThreadPoolExecutor(max_workers=30) as executor:
-        futures = []
         logging.info(f'Processing SDK examples: {release.sdk_name}')
-        for root, dirs, files in os.walk(java_examples_path):
+        java_paths = []
+        for root, dirs, files in os.scandir(java_examples_path):
             for name in files:
                 filepath = path.join(root, name)
-                if path.splitext(filepath)[1] == '.java':
-                    futures.append(executor.submit(lambda: process_java_example(
-                        release, sdk_examples_path, example_references,
-                        java_format, maven_package,
-                        name, filepath)))
+                java_paths.append(filepath)
+
+        futures = []
+        for filepath in java_paths:
+            if path.splitext(filepath)[1] == '.java':
+                futures.append(executor.submit(lambda: process_java_example(
+                    release, sdk_examples_path, example_references,
+                    java_format, maven_package,
+                    filepath)))
 
         for future in futures:
             future.result()
