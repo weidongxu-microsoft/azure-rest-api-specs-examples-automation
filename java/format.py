@@ -26,8 +26,8 @@ class JavaFormat:
         os.environ['JAVA_CODE'] = java_example
 
         cmd = ['java', '-jar', 'target/javaformat-1.0.0-beta.1-jar-with-dependencies.jar']
-        logging.info('Format java code')
-        logging.info('Command line: ' + ' '.join(cmd))
+        # logging.info('Format java code')
+        # logging.info('Command line: ' + ' '.join(cmd))
         result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=self.maven_path)
 
         if result.returncode:

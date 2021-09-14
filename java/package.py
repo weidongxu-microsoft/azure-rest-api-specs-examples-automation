@@ -27,8 +27,8 @@ class MavenPackage:
                 f.write(java_example)
 
             cmd = ['mvn', '--no-transfer-progress', 'package']
-            logging.info('Run mvn package')
-            logging.info('Command line: ' + ' '.join(cmd))
+            # logging.info('Run mvn package')
+            # logging.info('Command line: ' + ' '.join(cmd))
             return subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=maven_path)
 
     def __prepare_workspace(self, maven_path: str):

@@ -241,8 +241,6 @@ def process_java_example(release: Release, sdk_examples_path: str,
 
             # use Main as class name
             old_class_name = filename.split('.')[0]
-            new_class_name = example_filename.split('.')[0]
-            md_filename = new_class_name + '.md'
             new_class_name = 'Main'
             example_lines = format_java(java_format, example_lines, old_class_name, new_class_name)
 
@@ -251,9 +249,11 @@ def process_java_example(release: Release, sdk_examples_path: str,
             result = maven_package.test_example(java_example)
             if result.returncode:
                 # maven package fail, skip this example
-                logging.error('Maven test failed, skip the example')
+                logging.error(f'Maven test failed, skip the example: {example_filename}')
                 logging.info('Maven log:\n' + result.stdout)
             else:
+                md_filename = example_filename.split('.')[0] + '.md'
+
                 # add doc reference to markdown, as guidance for user to configure project and authenticate
                 doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
                            f'{release.sdk_name}/{release.package}/README.md'
@@ -269,6 +269,7 @@ def process_java_example(release: Release, sdk_examples_path: str,
                 md_file_path = path.join(md_dir_path, md_filename)
                 with open(md_file_path, 'w', encoding='utf-8') as f:
                     f.write(md_str)
+                logging.info(f'Markdown written to file: {md_file_path}')
 
 
 def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str,
