@@ -217,7 +217,8 @@ def process_java_example(release: Release, sdk_examples_path: str,
                          example_references: Dict[ExampleReference, str],
                          java_format: JavaFormat, maven_package: MavenPackage,
                          filepath: str):
-    logging.info(f'Processing Java aggregated sample: {filepath}')
+    filename = path.basename(filepath)
+    logging.info(f'Processing Java aggregated sample: {filename}')
 
     with open(filepath, encoding='utf-8') as f:
         lines = f.readlines()
@@ -240,7 +241,7 @@ def process_java_example(release: Release, sdk_examples_path: str,
             example_dir, example_filename = path.split(example_filepath)
 
             # use Main as class name
-            old_class_name = path.basename(filepath).split('.')[0]
+            old_class_name = filename.split('.')[0]
             new_class_name = 'Main'
             example_lines = format_java(java_format, example_lines, old_class_name, new_class_name)
 
@@ -274,17 +275,17 @@ def process_java_example(release: Release, sdk_examples_path: str,
 
 def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str,
                          example_references: Dict[ExampleReference, str]):
-    logging.info('Preparing tools and ThreadPoolExecutor')
+    logging.info('Preparing tools and thread pool')
 
     maven_package = MavenPackage(tmp_path, release.package, release.version)
 
     java_format = JavaFormat(path.join(script_path, 'javaformat'))
     java_format.build()
 
+    logging.info(f'Processing SDK examples: {release.sdk_name}')
     with ThreadPoolExecutor(max_workers=30) as executor:
-        logging.info(f'Processing SDK examples: {release.sdk_name}')
         java_paths = []
-        for root, dirs, files in os.scandir(java_examples_path):
+        for root, dirs, files in os.walk(java_examples_path):
             for name in files:
                 filepath = path.join(root, name)
                 java_paths.append(filepath)
