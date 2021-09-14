@@ -212,69 +212,78 @@ def format_markdown(doc_reference: str, lines: List[str]) -> str:
     return ''.join(md_lines)
 
 
+def process_java_example(release: Release, sdk_examples_path: str,
+                         example_references: Dict[ExampleReference, str],
+                         java_format: JavaFormat, maven_package: MavenPackage,
+                         filename: str, filepath: str):
+    logging.info(f'Processing Java aggregated sample: {filepath}')
+
+    with open(filepath, encoding='utf-8') as f:
+        lines = f.readlines()
+
+    if is_aggregated_java_example(lines):
+        aggregated_java_example = break_down_aggregated_java_example(lines)
+        for java_example_method in aggregated_java_example.methods:
+            if java_example_method.example_reference not in example_references:
+                logging.warning(f'Example info not found, skip {java_example_method.example_reference.name}'
+                                f' from file: {filepath}')
+                continue
+
+            logging.info(f'Processing java example: {java_example_method.example_reference.name}')
+
+            # re-construct the example class, from example method
+            example_lines = aggregated_java_example.class_opening + java_example_method.content \
+                + aggregated_java_example.class_closing
+
+            example_filepath = example_references[java_example_method.example_reference]
+            example_dir, example_filename = path.split(example_filepath)
+
+            # use Main as class name
+            old_class_name = filename.split('.')[0]
+            new_class_name = example_filename.split('.')[0]
+            md_filename = new_class_name + '.md'
+            new_class_name = 'Main'
+            example_lines = format_java(java_format, example_lines, old_class_name, new_class_name)
+
+            # compile example
+            java_example = ''.join(example_lines)
+            result = maven_package.test_example(java_example)
+            if result.returncode:
+                # maven package fail, skip this example
+                logging.error('Maven test failed, skip the example')
+                logging.info('Maven log:\n' + result.stdout)
+            else:
+                # add doc reference to markdown, as guidance for user to configure project and authenticate
+                doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
+                           f'{release.sdk_name}/{release.package}/README.md'
+                doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
+                                f'to your project and authenticate.'
+                md_str = format_markdown(doc_reference, example_lines)
+
+                # use the examples-java folder for Java example
+                md_dir = example_dir + '-java'
+                md_dir_path = path.join(sdk_examples_path, md_dir)
+                os.makedirs(md_dir_path, exist_ok=True)
+
+                md_file_path = path.join(md_dir_path, md_filename)
+                with open(md_file_path, 'w', encoding='utf-8') as f:
+                    f.write(md_str)
+
+
 def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str,
                          example_references: Dict[ExampleReference, str]):
+    maven_package = MavenPackage(tmp_path, release.package, release.version)
+
+    java_format = JavaFormat(path.join(script_path, 'javaformat'))
+    java_format.build()
+
     for root, dirs, files in os.walk(java_examples_path):
         for name in files:
             filepath = path.join(root, name)
             if path.splitext(filepath)[1] == '.java':
-                with open(filepath, encoding='utf-8') as f:
-                    lines = f.readlines()
-
-                logging.info(f'Processing Java aggregated sample: {filepath}')
-
-                if is_aggregated_java_example(lines):
-                    maven_package = MavenPackage(tmp_path, release.package, release.version)
-
-                    java_format = JavaFormat(path.join(script_path, 'javaformat'))
-                    java_format.build()
-
-                    aggregated_java_example = break_down_aggregated_java_example(lines)
-                    for java_example_method in aggregated_java_example.methods:
-                        if java_example_method.example_reference not in example_references:
-                            logging.warning(f'Example info not found, skip {java_example_method.example_reference.name}'
-                                            f' from file: {filepath}')
-                            continue
-
-                        logging.info(f'Processing java example: {java_example_method.example_reference.name}')
-
-                        # re-construct the example class, from example method
-                        example_lines = aggregated_java_example.class_opening + java_example_method.content\
-                            + aggregated_java_example.class_closing
-
-                        example_filepath = example_references[java_example_method.example_reference]
-                        example_dir, example_filename = path.split(example_filepath)
-
-                        # use Main as class name
-                        old_class_name = name.split('.')[0]
-                        new_class_name = example_filename.split('.')[0]
-                        md_filename = new_class_name + '.md'
-                        new_class_name = 'Main'
-                        example_lines = format_java(java_format, example_lines, old_class_name, new_class_name)
-
-                        # compile example
-                        java_example = ''.join(example_lines)
-                        result = maven_package.test_example(java_example)
-                        if result.returncode:
-                            # maven package fail, skip this example
-                            logging.error('Maven test failed, skip the example')
-                            logging.info('Maven log:\n' + result.stdout)
-                        else:
-                            # add doc reference to markdown, as guidance for user to configure project and authenticate
-                            doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
-                                       f'{release.sdk_name}/{release.package}/README.md'
-                            doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
-                                            f'to your project and authenticate.'
-                            md_str = format_markdown(doc_reference, example_lines)
-
-                            # use the examples-java folder for Java example
-                            md_dir = example_dir + '-java'
-                            md_dir_path = path.join(sdk_examples_path, md_dir)
-                            os.makedirs(md_dir_path, exist_ok=True)
-
-                            md_file_path = path.join(md_dir_path, md_filename)
-                            with open(md_file_path, 'w', encoding='utf-8') as f:
-                                f.write(md_str)
+                process_java_example(release, sdk_examples_path, example_references,
+                                     java_format, maven_package,
+                                     name, filepath)
 
 
 def main():
