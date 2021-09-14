@@ -16,10 +16,16 @@ class JavaFormat:
     def __init__(self, maven_path: str):
         self.maven_path = maven_path
 
+    def build(self):
+        cmd = ['mvn', '--quiet', 'package']
+        logging.info('Build javaformat')
+        logging.info('Command line: ' + ' '.join(cmd))
+        subprocess.check_call(cmd, cwd=self.maven_path)
+
     def format(self, java_example: str) -> CompletedJavaCode:
         os.environ['JAVA_CODE'] = java_example
 
-        cmd = ['mvn', '--quiet', 'package', 'exec:java']
+        cmd = ['java', '-jar', 'target/javaformat-1.0.0-beta.1-jar-with-dependencies.jar']
         logging.info('Format java code')
         logging.info('Command line: ' + ' '.join(cmd))
         result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=self.maven_path)

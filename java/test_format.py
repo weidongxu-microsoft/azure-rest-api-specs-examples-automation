@@ -1,14 +1,15 @@
 import unittest
 from os import path
 
-from format import JavaFormat, CompletedJavaCode
+from format import JavaFormat
 
 
-class TestMavenPackage(unittest.TestCase):
+class TestJavaFormat(unittest.TestCase):
 
     def test_example(self):
         maven_path = path.abspath('./javaformat')
         java_format = JavaFormat(maven_path)
+        java_format.build()
         code = '''class Main {}
 '''
         result = java_format.format(code)

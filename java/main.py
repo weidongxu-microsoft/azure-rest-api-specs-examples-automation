@@ -176,7 +176,7 @@ def break_down_aggregated_java_example(lines: List[str]) -> AggregatedJavaExampl
     return aggregated_java_example
 
 
-def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> List[str]:
+def format_java(java_format: JavaFormat, lines: List[str], old_class_name: str, new_class_name: str) -> List[str]:
     # format example as Java code
 
     new_lines = []
@@ -193,7 +193,6 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
 
     java_code = ''.join(new_lines)
 
-    java_format = JavaFormat(path.join(script_path, 'javaformat'))
     result = java_format.format(java_code)
     if result.returncode == 0:
         return result.formatted_code.splitlines(keepends=True)
@@ -226,6 +225,10 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
 
                 if is_aggregated_java_example(lines):
                     maven_package = MavenPackage(tmp_path, release.package, release.version)
+
+                    java_format = JavaFormat(path.join(script_path, 'javaformat'))
+                    java_format.build()
+
                     aggregated_java_example = break_down_aggregated_java_example(lines)
                     for java_example_method in aggregated_java_example.methods:
                         if java_example_method.example_reference not in example_references:
@@ -247,7 +250,7 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
                         new_class_name = example_filename.split('.')[0]
                         md_filename = new_class_name + '.md'
                         new_class_name = 'Main'
-                        example_lines = format_java(example_lines, old_class_name, new_class_name)
+                        example_lines = format_java(java_format, example_lines, old_class_name, new_class_name)
 
                         # compile example
                         java_example = ''.join(example_lines)
