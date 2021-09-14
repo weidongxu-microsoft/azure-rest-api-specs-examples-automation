@@ -288,15 +288,19 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
         for root, dirs, files in os.walk(java_examples_path):
             for name in files:
                 filepath = path.join(root, name)
-                java_paths.append(filepath)
+                if path.splitext(filepath)[1] == '.java':
+                    java_paths.append(filepath)
+
+        logging.info(f'Java files to process: {java_paths}')
 
         futures = []
         for filepath in java_paths:
-            if path.splitext(filepath)[1] == '.java':
-                futures.append(executor.submit(lambda: process_java_example(
+            def task():
+                process_java_example(
                     release, sdk_examples_path, example_references,
                     java_format, maven_package,
-                    filepath)))
+                    filepath)
+            futures.append(executor.submit(task))
 
         for future in futures:
             future.result()
