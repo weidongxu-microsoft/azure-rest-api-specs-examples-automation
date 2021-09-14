@@ -274,6 +274,8 @@ def process_java_example(release: Release, sdk_examples_path: str,
 
 def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str,
                          example_references: Dict[ExampleReference, str]):
+    logging.info('Preparing tools and ThreadPoolExecutor')
+
     maven_package = MavenPackage(tmp_path, release.package, release.version)
 
     java_format = JavaFormat(path.join(script_path, 'javaformat'))
@@ -281,6 +283,7 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
 
     with ThreadPoolExecutor(max_workers=30) as executor:
         futures = []
+        logging.info(f'Processing SDK examples: {release.sdk_name}')
         for root, dirs, files in os.walk(java_examples_path):
             for name in files:
                 filepath = path.join(root, name)
