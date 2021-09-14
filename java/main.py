@@ -280,13 +280,18 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
     java_format.build()
 
     with ThreadPoolExecutor(max_workers=30) as executor:
+        futures = []
         for root, dirs, files in os.walk(java_examples_path):
             for name in files:
                 filepath = path.join(root, name)
                 if path.splitext(filepath)[1] == '.java':
-                    executor.submit(lambda: process_java_example(release, sdk_examples_path, example_references,
-                                                                 java_format, maven_package,
-                                                                 name, filepath))
+                    futures.append(executor.submit(lambda: process_java_example(
+                        release, sdk_examples_path, example_references,
+                        java_format, maven_package,
+                        name, filepath)))
+
+        for future in futures:
+            future.result()
 
 
 def main():
