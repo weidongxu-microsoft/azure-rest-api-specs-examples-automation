@@ -1,4 +1,5 @@
 import os
+import tempfile
 from os import path
 import subprocess
 import logging
@@ -6,42 +7,38 @@ import logging
 
 class MavenPackage:
     tmp_path: str
-    maven_path: str
     package: str
     version: str
-
-    workspace_prepared: bool = False
 
     def __init__(self, tmp_path: str, package: str, version: str):
         self.tmp_path = tmp_path
         self.package = package
         self.version = version
 
-        self.maven_path = path.join(self.tmp_path, 'maven')
-
     def test_example(self, java_example: str) -> subprocess.CompletedProcess:
-        self.__prepare_workspace()
+        tmp_dir = tempfile.TemporaryDirectory(dir=self.tmp_path)
+        maven_path = tmp_dir.name
 
-        example_code_path = path.join(self.maven_path, 'src', 'main', 'java', 'Main.java')
+        self.__prepare_workspace(maven_path)
+
+        example_code_path = path.join(maven_path, 'src', 'main', 'java', 'Main.java')
 
         with open(example_code_path, 'w', encoding='utf-8') as f:
             f.write(java_example)
 
-        cmd = ['mvn', '--no-transfer-progress', 'clean', 'package']
+        cmd = ['mvn', '--no-transfer-progress', 'package']
         logging.info('Run mvn package')
         logging.info('Command line: ' + ' '.join(cmd))
-        return subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=self.maven_path)
+        return subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=maven_path)
 
-    def __prepare_workspace(self):
-        if not self.workspace_prepared:
-            # make dir for maven and src/main/java
-            os.makedirs(self.maven_path, exist_ok=True)
-            java_path = path.join(self.maven_path, 'src', 'main', 'java')
-            os.makedirs(java_path, exist_ok=True)
+    def __prepare_workspace(self, maven_path: str):
+        # make dir for maven and src/main/java
+        java_path = path.join(maven_path, 'src', 'main', 'java')
+        os.makedirs(java_path, exist_ok=True)
 
-            # create pom
-            pom_file_path = path.join(self.maven_path, 'pom.xml')
-            pom_str = f'''<project xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        # create pom
+        pom_file_path = path.join(maven_path, 'pom.xml')
+        pom_str = f'''<project xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.azure.resourcemanager</groupId>
@@ -76,7 +73,5 @@ class MavenPackage:
   </build>
 </project>
 '''
-            with open(pom_file_path, 'w', encoding='utf-8') as f:
-                f.write(pom_str)
-
-            self.workspace_prepared = True
+        with open(pom_file_path, 'w', encoding='utf-8') as f:
+            f.write(pom_str)
