@@ -7,8 +7,9 @@ from format import JavaFormat
 class TestJavaFormat(unittest.TestCase):
 
     def test_example(self):
+        tmp_path = path.abspath('.')
         maven_path = path.abspath('./javaformat')
-        java_format = JavaFormat(maven_path)
+        java_format = JavaFormat(tmp_path, maven_path)
         java_format.build()
         code = '''class Main {}
 '''

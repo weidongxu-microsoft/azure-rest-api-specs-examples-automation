@@ -4,6 +4,7 @@ from os import path
 import sys
 import subprocess
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 import json
 import re
@@ -182,7 +183,10 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
         # run script
         logging.info(f'Running worker: {sdk.script.run}')
+        start = time.perf_counter()
         subprocess.check_call([sdk.script.run, input_json_path, output_json_path], cwd=root_path)
+        end = time.perf_counter()
+        logging.info(f'Worker ran: {str(timedelta(seconds=end-start))}')
 
         # commit and create pull request
         # check for new examples

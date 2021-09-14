@@ -279,7 +279,7 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
 
     maven_package = MavenPackage(tmp_path, release.package, release.version)
 
-    java_format = JavaFormat(path.join(script_path, 'javaformat'))
+    java_format = JavaFormat(tmp_path, path.join(script_path, 'javaformat'))
     java_format.build()
 
     logging.info(f'Processing SDK examples: {release.sdk_name}')
