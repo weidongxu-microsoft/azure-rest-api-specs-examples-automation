@@ -76,7 +76,7 @@ def get_java_example_method(lines: List[str], start: int) -> JavaExampleMethodCo
             original_file = line.strip()[len(original_file_key):].lower()
         elif line.startswith('    public static void '):
             # begin of method
-            java_example_method.example_reference = original_file
+            java_example_method.example_relative_path = original_file
             java_example_method.line_start = index
         elif line.startswith('    }'):
             # end of method
