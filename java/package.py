@@ -16,8 +16,8 @@ class MavenPackage:
         self.version = version
 
     def test_example(self, java_example: str) -> subprocess.CompletedProcess:
-        with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir:
-            maven_path = tmp_dir.name
+        with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir_name:
+            maven_path = tmp_dir_name
 
             self.__prepare_workspace(maven_path)
 
