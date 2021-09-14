@@ -291,16 +291,12 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
                 if path.splitext(filepath)[1] == '.java':
                     java_paths.append(filepath)
 
-        logging.info(f'Java files to process: {java_paths}')
-
         futures = []
         for filepath in java_paths:
-            def task():
-                process_java_example(
+            futures.append(executor.submit(lambda filepath1=filepath: process_java_example(
                     release, sdk_examples_path, example_references,
                     java_format, maven_package,
-                    filepath)
-            futures.append(executor.submit(task))
+                    filepath1)))
 
         for future in futures:
             future.result()
