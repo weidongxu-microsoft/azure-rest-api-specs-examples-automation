@@ -296,7 +296,7 @@ def main():
     global github_token
 
     logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s %(levelname)s %(message)s',
+                        format='%(asctime)s [%(levelname)s] %(message)s',
                         datefmt='%Y-%m-%d %X')
 
     script_path = path.abspath(os.path.dirname(sys.argv[0]))
