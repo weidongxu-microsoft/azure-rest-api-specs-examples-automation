@@ -18,7 +18,7 @@ import requests
 github_token: str
 root_path: str = '.'
 
-clean_tmp_dir: bool = False
+clean_tmp_dir: bool = True
 tmp_folder: str = 'tmp'
 tmp_spec_folder: str = 'spec'
 tmp_example_folder: str = 'example'
