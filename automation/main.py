@@ -299,7 +299,7 @@ def main():
                         format='%(asctime)s [%(levelname)s] %(message)s',
                         datefmt='%Y-%m-%d %X')
 
-    script_path = path.abspath(os.path.dirname(sys.argv[0]))
+    script_path = path.abspath(path.dirname(sys.argv[0]))
     root_path = path.abspath(path.join(script_path, '..'))
 
     parser = argparse.ArgumentParser(description='')

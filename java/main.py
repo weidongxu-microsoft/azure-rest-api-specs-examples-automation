@@ -241,7 +241,7 @@ def main():
                         format='%(asctime)s [%(levelname)s] %(message)s',
                         datefmt='%Y-%m-%d %X')
 
-    script_path = path.abspath(os.path.dirname(sys.argv[0]))
+    script_path = path.abspath(path.dirname(sys.argv[0]))
 
     parser = argparse.ArgumentParser(description='Requires 2 arguments, path of "input.json" and "output.json".')
     parser.add_argument('paths', metavar='path', type=str, nargs=2,
