@@ -18,7 +18,7 @@ import requests
 github_token: str
 root_path: str = '.'
 
-clean_tmp_dir: bool = False
+clean_tmp_dir: bool = True
 tmp_folder: str = 'tmp'
 tmp_spec_folder: str = 'spec'
 tmp_example_folder: str = 'example'
@@ -296,10 +296,10 @@ def main():
     global github_token
 
     logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s %(levelname)s %(message)s',
+                        format='%(asctime)s [%(levelname)s] %(message)s',
                         datefmt='%Y-%m-%d %X')
 
-    script_path = path.abspath(os.path.dirname(sys.argv[0]))
+    script_path = path.abspath(path.dirname(sys.argv[0]))
     root_path = path.abspath(path.join(script_path, '..'))
 
     parser = argparse.ArgumentParser(description='')
