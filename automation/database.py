@@ -17,7 +17,7 @@ class Database:
 
     def new_release(self, name: str, language: str, tag: str, package: str, version: str, date: datetime,
                     files: List[str]) -> bool:
-        date_epoch = date.utcfromtimestamp(0)
+        date_epoch = int(date.timestamp())
         try:
             with sqlite3.connect(self.database_path) as conn:
                 conn.execute('PRAGMA foreign_keys = 1')
