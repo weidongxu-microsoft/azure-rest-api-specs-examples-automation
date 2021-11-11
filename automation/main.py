@@ -14,6 +14,7 @@ import dataclasses
 from typing import List
 import itertools
 import requests
+from database import Database
 
 github_token: str
 root_path: str = '.'
@@ -87,6 +88,7 @@ class Release:
     tag: str
     package: str
     version: str
+    date: datetime
 
 
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
@@ -190,6 +192,13 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         end = time.perf_counter()
         logging.info(f'Worker ran: {str(timedelta(seconds=end-start))}')
 
+        # parse output.json
+        release_name = release.tag
+        if path.isfile(output_json_path):
+            with open(output_json_path, 'r', encoding='utf-8') as f_in:
+                output = json.load(f_in)
+                release_name = output['name']
+
         # commit and create pull request
         # check for new examples
         cmd = ['git', 'status', '--porcelain']
@@ -200,6 +209,8 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         else:
             output_str = str(output, 'utf-8')
             logging.info(f'git status:\n{output_str}')
+
+            changed_files = [file.strip()[2:] for file in output_str.splitlines()]
 
             # git add
             cmd = ['git', 'add', '--all']
@@ -232,6 +243,41 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             # create github pull request
             head = f'{operation.repository_owner}:{branch}'
             create_pull_request(operation, title, head)
+
+            # write to database
+            database_path = path.join(root_path, 'database', 'examples.db')
+            database = Database(database_path)
+            database_succeeded = database.new_release(
+                release_name, sdk.language, release.tag, release.package, release.version, release.date, changed_files)
+            if database_succeeded:
+                # git add
+                cmd = ['git', 'add', database_path]
+                logging.info('Command line: ' + ' '.join(cmd))
+                subprocess.check_call(cmd, cwd=root_path)
+
+                # git commit
+                title = f'[Automation] Update database for {sdk.name}#{release_name}'
+                logging.info(f'git commit: {title}')
+                cmd = ['git',
+                       '-c', 'user.name=azure-sdk',
+                       '-c', 'user.email=azuresdk@microsoft.com',
+                       'commit', f'--message="{title}"']
+                logging.info('Command line: ' + ' '.join(cmd))
+                subprocess.check_call(cmd, cwd=root_path)
+
+                # current branch
+                cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+                logging.info('Command line: ' + ' '.join(cmd))
+                current_branch = subprocess.check_output(cmd, cwd=root_path).strip()
+
+                # git push
+                remote_uri = f'https://{github_token}@' \
+                             'github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
+                cmd = ['git', 'push', remote_uri, current_branch]
+                # do not print this as it contains token
+                # logging.info('Command line: ' + ' '.join(cmd))
+                subprocess.check_call(cmd, cwd=root_path)
+
     except subprocess.CalledProcessError as error:
         logging.error(f'Call error: {error}')
     finally:
@@ -276,7 +322,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
                         if re.match(sdk.release_tag.regex_match, release_tag):
                             package = re.match(sdk.release_tag.package_regex_group, release_tag).group(1)
                             version = re.match(sdk.release_tag.version_regex_group, release_tag).group(1)
-                            release = Release(release_tag, package, version)
+                            release = Release(release_tag, package, version, published_at)
                             releases.append(release)
                             logging.info(f'Found release tag: {release.tag}')
         else:
