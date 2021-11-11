@@ -5,7 +5,7 @@ from typing import List
 
 
 SCRIPT_QUERY_RELEASE = '''select name from release where name = ? and language = ?'''
-SCRIPT_INSERT_RELEASE = '''insert into release (name, language, tag, package, version, date_epoch) values (?, ?, ?, ?, ?, ?)'''
+SCRIPT_INSERT_RELEASE = '''insert or replace into release (name, language, tag, package, version, date_epoch) values (?, ?, ?, ?, ?, ?)'''
 SCRIPT_INSERT_FILE = '''insert into file (file, release_id) values (?, ?)'''
 
 
