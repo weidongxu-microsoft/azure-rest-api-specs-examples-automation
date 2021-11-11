@@ -32,7 +32,13 @@ class JavaFormat:
             with open(tmp_filepath, 'w', encoding='utf-8') as f:
                 f.write(java_example)
 
-            cmd = ['java', '-jar', 'target/javaformat-1.0.0-beta.1-jar-with-dependencies.jar', tmp_filepath]
+            cmd = ['java',
+                   '--add-exports', 'jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED',
+                   '--add-exports', 'jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED',
+                   '--add-exports', 'jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED',
+                   '--add-exports', 'jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED',
+                   '--add-exports', 'jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
+                   '-jar', 'target/javaformat-1.0.0-beta.1-jar-with-dependencies.jar', tmp_filepath]
             # logging.info('Format java code')
             # logging.info('Command line: ' + ' '.join(cmd))
             result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=self.maven_path)
