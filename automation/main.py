@@ -25,6 +25,10 @@ tmp_spec_folder: str = 'spec'
 tmp_example_folder: str = 'example'
 tmp_sdk_folder: str = 'sdk'
 
+automation_repo = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
+database_branch = 'database'
+database_folder = 'db'
+
 
 @dataclasses.dataclass(eq=True, frozen=True)
 class ReleaseTagConfiguration:
@@ -210,12 +214,17 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             output_str = str(output, 'utf-8')
             logging.info(f'git status:\n{output_str}')
 
-            changed_files = [file.strip()[2:] for file in output_str.splitlines()]
-
             # git add
             cmd = ['git', 'add', '--all']
             logging.info('Command line: ' + ' '.join(cmd))
             subprocess.check_call(cmd, cwd=example_repo_path)
+
+            # find added/modified files
+            cmd = ['git', 'status', '--porcelain']
+            logging.info('Command line: ' + ' '.join(cmd))
+            output = subprocess.check_output(cmd, cwd=example_repo_path)
+            output_str = str(output, 'utf-8')
+            changed_files = [file.strip()[2:] for file in output_str.splitlines()]
 
             # git checkout new branch
             branch = f'automation-examples_{sdk.name}_{release.tag}_{operation.build_id}'
@@ -229,7 +238,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             cmd = ['git',
                    '-c', 'user.name=azure-sdk',
                    '-c', 'user.email=azuresdk@microsoft.com',
-                   'commit', f'--message="{title}"']
+                   'commit', '-m', title]
             logging.info('Command line: ' + ' '.join(cmd))
             subprocess.check_call(cmd, cwd=example_repo_path)
 
@@ -244,42 +253,8 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             head = f'{operation.repository_owner}:{branch}'
             create_pull_request(operation, title, head)
 
-            # write to database
-            database_path = path.join(root_path, 'database', 'examples.db')
-            database = Database(database_path)
-            database_succeeded = database.new_release(
-                release_name, sdk.language, release.tag, release.package, release.version, release.date, changed_files)
-            if database_succeeded:
-                # current branch
-                cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
-                logging.info('Command line: ' + ' '.join(cmd))
-                output = subprocess.check_output(cmd, cwd=root_path)
-                current_branch = str(output, 'utf-8').strip()
-
-                if not current_branch == 'HEAD':
-                    # git add
-                    cmd = ['git', 'add', database_path]
-                    logging.info('Command line: ' + ' '.join(cmd))
-                    subprocess.check_call(cmd, cwd=root_path)
-
-                    # git commit
-                    title = f'[Automation] Update database for {sdk.name}#{release_name}'
-                    logging.info(f'git commit: {title}')
-                    cmd = ['git',
-                           '-c', 'user.name=azure-sdk',
-                           '-c', 'user.email=azuresdk@microsoft.com',
-                           'commit', f'--message="{title}"']
-                    logging.info('Command line: ' + ' '.join(cmd))
-                    subprocess.check_call(cmd, cwd=root_path)
-
-                    # git push
-                    remote_uri = f'https://{github_token}@' \
-                                 'github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
-                    cmd = ['git', 'push', remote_uri, current_branch]
-                    # do not print this as it contains token
-                    # logging.info('Command line: ' + ' '.join(cmd))
-                    subprocess.check_call(cmd, cwd=root_path)
-
+            # commit changes to database
+            commit_database(release_name, sdk.language, release, changed_files)
     except subprocess.CalledProcessError as error:
         logging.error(f'Call error: {error}')
     finally:
@@ -287,21 +262,42 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def commit_database(release_name: str, language: str, release: Release, changed_files: List[str]):
+    # write to local database and commit to repository
+
+    tmp_root_path = path.join(root_path, tmp_folder)
+    database_path = path.join(tmp_root_path, database_folder)
+
+    database_filename = 'examples.db'
+    database = Database(path.join(database_path, database_filename))
+    database_succeeded = database.new_release(
+        release_name, language, release.tag, release.package, release.version, release.date, changed_files)
+    if database_succeeded:
+        # git add
+        cmd = ['git', 'add', database_filename]
+        logging.info('Command line: ' + ' '.join(cmd))
+        subprocess.check_call(cmd, cwd=database_path)
+
+        # git commit
+        title = f'[Automation] Update database for {language}#{release.tag}'
+        logging.info(f'git commit: {title}')
+        cmd = ['git',
+               '-c', 'user.name=azure-sdk',
+               '-c', 'user.email=azuresdk@microsoft.com',
+               'commit', '-m', title]
+        logging.info('Command line: ' + ' '.join(cmd))
+        subprocess.check_call(cmd, cwd=database_path)
+
+        # git push
+        remote_uri = 'https://' + github_token + '@' + automation_repo[len('https://'):]
+        cmd = ['git', 'push', remote_uri, database_branch]
+        # do not print this as it contains token
+        # logging.info('Command line: ' + ' '.join(cmd))
+        subprocess.check_call(cmd, cwd=database_path)
+
+
 def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
     # process for sdk
-
-    # checkout azure-rest-api-specs repo
-    tmp_root_path = path.join(root_path, tmp_folder)
-    os.makedirs(tmp_root_path, exist_ok=True)
-    spec_repo_path = path.join(tmp_root_path, tmp_spec_folder)
-    spec_repo = 'https://github.com/Azure/azure-rest-api-specs'
-    cmd = ['git', 'clone',
-           '--quiet',
-           '--depth', '1',
-           spec_repo, spec_repo_path]
-    logging.info(f'Checking out repository: spec_repo')
-    logging.info('Command line: ' + ' '.join(cmd))
-    subprocess.check_call(cmd, cwd=tmp_root_path)
 
     logging.info(f'Processing sdk: {sdk.name}')
     releases = []
@@ -337,6 +333,30 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
 
 def process(command_line: CommandLineConfiguration):
     configuration = load_configuration(command_line)
+
+    # checkout azure-rest-api-specs repo
+    tmp_root_path = path.join(root_path, tmp_folder)
+    os.makedirs(tmp_root_path, exist_ok=True)
+    spec_repo_path = path.join(tmp_root_path, tmp_spec_folder)
+    spec_repo = 'https://github.com/Azure/azure-rest-api-specs'
+    cmd = ['git', 'clone',
+           '--quiet',
+           '--depth', '1',
+           spec_repo, spec_repo_path]
+    logging.info(f'Checking out repository: {spec_repo}')
+    logging.info('Command line: ' + ' '.join(cmd))
+    subprocess.check_call(cmd, cwd=tmp_root_path)
+
+    # checkout database
+    database_path = path.join(tmp_root_path, database_folder)
+    cmd = ['git', 'clone',
+           '--quiet',
+           '--branch', database_branch,
+           automation_repo, database_path]
+    logging.info(f'Checking out repository: {automation_repo}, branch {database_branch}')
+    logging.info('Command line: ' + ' '.join(cmd))
+    subprocess.check_call(cmd, cwd=tmp_root_path)
+
     for sdk_configuration in configuration.sdks:
         process_sdk(configuration.operation, sdk_configuration)
 

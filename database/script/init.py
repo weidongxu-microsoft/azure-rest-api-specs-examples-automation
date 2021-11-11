@@ -32,20 +32,28 @@ SCRIPT_FILE_TABLE = '''create table file (
 )'''
 
 
-def main():
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s [%(levelname)s] %(message)s',
-                        datefmt='%Y-%m-%d %X')
-
+def init():
     script_path = path.abspath(path.dirname(sys.argv[0]))
     root_path = path.abspath(path.join(script_path, '../..'))
     db_path = path.join(root_path, 'database/examples.db')
 
     with sqlite3.connect(db_path) as con:
-        cur = con.cursor()
-        cur.execute(SCRIPT_RELEASE_TABLE)
-        cur.execute(SCRIPT_RELEASE_INDEX1)
-        cur.execute(SCRIPT_FILE_TABLE)
+        cursor = con.cursor()
+        script1(cursor)
+
+
+def script1(cursor):
+    cursor.execute(SCRIPT_RELEASE_TABLE)
+    cursor.execute(SCRIPT_RELEASE_INDEX1)
+    cursor.execute(SCRIPT_FILE_TABLE)
+
+
+def main():
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s [%(levelname)s] %(message)s',
+                        datefmt='%Y-%m-%d %X')
+
+    init()
 
 
 if __name__ == '__main__':
