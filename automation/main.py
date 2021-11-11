@@ -250,33 +250,35 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             database_succeeded = database.new_release(
                 release_name, sdk.language, release.tag, release.package, release.version, release.date, changed_files)
             if database_succeeded:
-                # git add
-                cmd = ['git', 'add', database_path]
-                logging.info('Command line: ' + ' '.join(cmd))
-                subprocess.check_call(cmd, cwd=root_path)
-
-                # git commit
-                title = f'[Automation] Update database for {sdk.name}#{release_name}'
-                logging.info(f'git commit: {title}')
-                cmd = ['git',
-                       '-c', 'user.name=azure-sdk',
-                       '-c', 'user.email=azuresdk@microsoft.com',
-                       'commit', f'--message="{title}"']
-                logging.info('Command line: ' + ' '.join(cmd))
-                subprocess.check_call(cmd, cwd=root_path)
-
                 # current branch
                 cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
                 logging.info('Command line: ' + ' '.join(cmd))
-                current_branch = subprocess.check_output(cmd, cwd=root_path).strip()
+                output = subprocess.check_output(cmd, cwd=root_path)
+                current_branch = str(output, 'utf-8').strip()
 
-                # git push
-                remote_uri = f'https://{github_token}@' \
-                             'github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
-                cmd = ['git', 'push', remote_uri, current_branch]
-                # do not print this as it contains token
-                # logging.info('Command line: ' + ' '.join(cmd))
-                subprocess.check_call(cmd, cwd=root_path)
+                if not current_branch == 'HEAD':
+                    # git add
+                    cmd = ['git', 'add', database_path]
+                    logging.info('Command line: ' + ' '.join(cmd))
+                    subprocess.check_call(cmd, cwd=root_path)
+
+                    # git commit
+                    title = f'[Automation] Update database for {sdk.name}#{release_name}'
+                    logging.info(f'git commit: {title}')
+                    cmd = ['git',
+                           '-c', 'user.name=azure-sdk',
+                           '-c', 'user.email=azuresdk@microsoft.com',
+                           'commit', f'--message="{title}"']
+                    logging.info('Command line: ' + ' '.join(cmd))
+                    subprocess.check_call(cmd, cwd=root_path)
+
+                    # git push
+                    remote_uri = f'https://{github_token}@' \
+                                 'github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
+                    cmd = ['git', 'push', remote_uri, current_branch]
+                    # do not print this as it contains token
+                    # logging.info('Command line: ' + ' '.join(cmd))
+                    subprocess.check_call(cmd, cwd=root_path)
 
     except subprocess.CalledProcessError as error:
         logging.error(f'Call error: {error}')
