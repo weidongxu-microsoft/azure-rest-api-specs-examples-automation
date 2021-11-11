@@ -18,22 +18,26 @@ class Database:
     def new_release(self, name: str, language: str, tag: str, package: str, version: str, date: datetime,
                     files: List[str]) -> bool:
         date_epoch = date.utcfromtimestamp(0)
-        with sqlite3.connect(self.database_path) as conn:
-            conn.execute('PRAGMA foreign_keys = 1')
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                conn.execute('PRAGMA foreign_keys = 1')
 
-            cursor = conn.cursor()
-            cursor.execute(SCRIPT_QUERY_RELEASE, (name, language))
-            existing_release = cursor.fetchone()
-            if existing_release:
-                logging.warning(f'Release already exists for {language}#{name}')
-                return False
+                cursor = conn.cursor()
+                cursor.execute(SCRIPT_QUERY_RELEASE, (name, language))
+                existing_release = cursor.fetchone()
+                if existing_release:
+                    logging.warning(f'Release already exists for {language}#{name}')
+                    return False
 
-            cursor = conn.cursor()
-            cursor.execute(SCRIPT_INSERT_RELEASE, (name, language, tag, package, version, date_epoch))
-            release_id = cursor.lastrowid
+                cursor = conn.cursor()
+                cursor.execute(SCRIPT_INSERT_RELEASE, (name, language, tag, package, version, date_epoch))
+                release_id = cursor.lastrowid
 
-            file_records = [(file, release_id) for file in files]
-            cursor.executemany(SCRIPT_INSERT_FILE, file_records)
+                file_records = [(file, release_id) for file in files]
+                cursor.executemany(SCRIPT_INSERT_FILE, file_records)
 
-            conn.commit()
-        return True
+                conn.commit()
+            return True
+        except sqlite3.Error as error:
+            logging.error(f'Database error: {error}')
+            return False
