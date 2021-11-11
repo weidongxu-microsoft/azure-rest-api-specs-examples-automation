@@ -15,7 +15,10 @@ class TestDatabase(unittest.TestCase):
 
     def test_insert(self):
         # init database
-        os.remove('test.db')
+        try:
+            os.remove('test.db')
+        except OSError:
+            pass
         with sqlite3.connect('test.db') as conn:
             script1(conn.cursor())
 

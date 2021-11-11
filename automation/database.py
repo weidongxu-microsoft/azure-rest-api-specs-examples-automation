@@ -31,7 +31,9 @@ class Database:
             cursor = conn.cursor()
             cursor.execute(SCRIPT_INSERT_RELEASE, (name, language, tag, package, version, date_epoch))
             release_id = cursor.lastrowid
-            for file in files:
-                cursor.execute(SCRIPT_INSERT_FILE, (file, release_id))
+
+            file_records = [(file, release_id) for file in files]
+            cursor.executemany(SCRIPT_INSERT_FILE, file_records)
+
             conn.commit()
         return True
