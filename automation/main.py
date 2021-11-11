@@ -40,6 +40,7 @@ class Script:
 @dataclasses.dataclass(eq=True, frozen=True)
 class SdkConfiguration:
     name: str
+    language: str
     repository: str
     release_tag: ReleaseTagConfiguration
     script: Script
@@ -104,6 +105,7 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
                                               sdk_config['releaseTag']['packageRegexGroup'],
                                               sdk_config['releaseTag']['versionRegexGroup'])
         sdk_configuration = SdkConfiguration(sdk_config['name'],
+                                             sdk_config['language'],
                                              sdk_config['repository'],
                                              release_tag, script)
         sdk_configurations.append(sdk_configuration)
