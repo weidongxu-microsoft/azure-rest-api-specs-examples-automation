@@ -214,12 +214,17 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             output_str = str(output, 'utf-8')
             logging.info(f'git status:\n{output_str}')
 
-            changed_files = [file.strip()[2:] for file in output_str.splitlines()]
-
             # git add
             cmd = ['git', 'add', '--all']
             logging.info('Command line: ' + ' '.join(cmd))
             subprocess.check_call(cmd, cwd=example_repo_path)
+
+            # find added/modified files
+            cmd = ['git', 'status', '--porcelain']
+            logging.info('Command line: ' + ' '.join(cmd))
+            output = subprocess.check_output(cmd, cwd=example_repo_path)
+            output_str = str(output, 'utf-8')
+            changed_files = [file.strip()[2:] for file in output_str.splitlines()]
 
             # git checkout new branch
             branch = f'automation-examples_{sdk.name}_{release.tag}_{operation.build_id}'
