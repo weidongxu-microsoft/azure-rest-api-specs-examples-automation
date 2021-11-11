@@ -8,10 +8,10 @@ SCRIPT_RELEASE_TABLE = '''create table release (
     id          integer         not null primary key,
     name        varchar(255)    not null,
     language    varchar(255)    not null,
-    repository  varchar(2048)   not null,
     tag         varchar(255)    not null,
     package     varchar(255)    not null,
     version     varchar(255)    not null,
+    date_epoch  integer         not null,
     
     unique(name, language)
 )'''
@@ -22,7 +22,7 @@ SCRIPT_RELEASE_INDEX1 = 'create index release_idx1 on release(language, package,
 
 SCRIPT_FILE_TABLE = '''create table file (
     id          integer         not null primary key,
-    file        varchar(2048)   not null,
+    file        varchar(511)    not null,
     release_id  integer         not null,
 
     foreign key(release_id) references release(id)

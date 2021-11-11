@@ -249,8 +249,8 @@ def main():
     args = parser.parse_args()
     input_json_path = args.paths[0]
     output_json_path = args.paths[1]
-    with open(input_json_path, 'r', encoding='utf-8') as fin:
-        config = json.load(fin)
+    with open(input_json_path, 'r', encoding='utf-8') as f_in:
+        config = json.load(f_in)
 
     # specs_path = config['specsPath']
     sdk_path = config['sdkPath']
@@ -266,6 +266,14 @@ def main():
     java_examples_path = path.join(sdk_path, java_examples_relative_path)
 
     create_java_examples(release, sdk_examples_path, java_examples_path)
+
+    with open(output_json_path, 'w', encoding='utf-8') as f_out:
+        group = 'com.azure.resourcemanager'
+        output = {
+            'status': 'succeeded',
+            'name': f'{group}:{release.package}:{release.version}'
+        }
+        json.dump(output, f_out, indent=2)
 
 
 if __name__ == '__main__':
