@@ -238,7 +238,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             cmd = ['git',
                    '-c', 'user.name=azure-sdk',
                    '-c', 'user.email=azuresdk@microsoft.com',
-                   'commit', f'--message="{title}"']
+                   'commit', '-m', title]
             logging.info('Command line: ' + ' '.join(cmd))
             subprocess.check_call(cmd, cwd=example_repo_path)
 
@@ -284,7 +284,7 @@ def commit_database(release_name: str, language: str, release: Release, changed_
         cmd = ['git',
                '-c', 'user.name=azure-sdk',
                '-c', 'user.email=azuresdk@microsoft.com',
-               'commit', f'--message="{title}"']
+               'commit', '-m', title]
         logging.info('Command line: ' + ' '.join(cmd))
         subprocess.check_call(cmd, cwd=database_path)
 
