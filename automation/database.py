@@ -19,7 +19,7 @@ class Database:
                     files: List[str]) -> bool:
         date_epoch = date.utcfromtimestamp(0)
         with sqlite3.connect(self.database_path) as conn:
-            conn.execute("PRAGMA foreign_keys = 1")
+            conn.execute('PRAGMA foreign_keys = 1')
 
             cursor = conn.cursor()
             cursor.execute(SCRIPT_QUERY_RELEASE, (name, language))
