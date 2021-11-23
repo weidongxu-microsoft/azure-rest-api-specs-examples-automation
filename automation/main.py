@@ -14,7 +14,11 @@ import dataclasses
 from typing import List
 import itertools
 import requests
-from database import Database
+try:
+    from database import Database
+except ImportError:
+    pass
+
 
 github_token: str
 root_path: str = '.'
