@@ -14,7 +14,11 @@ import dataclasses
 from typing import List
 import itertools
 import requests
-from database import Database
+try:
+    from database import Database
+except ImportError:
+    pass
+
 
 github_token: str
 root_path: str = '.'
@@ -63,6 +67,7 @@ class SdkConfiguration:
 class OperationConfiguration:
     sdk_examples_repository: str
     build_id: str
+    persist_data: bool
     date_start: datetime
     date_end: datetime
 
@@ -85,6 +90,7 @@ class Configuration:
 class CommandLineConfiguration:
     build_id: str
     release_in_days: int
+    persist_data: bool
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -102,6 +108,7 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
     now = datetime.now(timezone.utc)
     operation_configuration = OperationConfiguration(config['sdkExample']['repository'],
                                                      command_line.build_id,
+                                                     command_line.persist_data,
                                                      now - timedelta(days=command_line.release_in_days), now)
 
     sdk_configurations = []
@@ -253,8 +260,9 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             head = f'{operation.repository_owner}:{branch}'
             create_pull_request(operation, title, head)
 
-            # commit changes to database
-            commit_database(release_name, sdk.language, release, changed_files)
+            if operation.persist_data:
+                # commit changes to database
+                commit_database(release_name, sdk.language, release, changed_files)
     except subprocess.CalledProcessError as error:
         logging.error(f'Call error: {error}')
     finally:
@@ -379,11 +387,13 @@ def main():
                         help='GitHub token')
     parser.add_argument('--release-in-days', type=int, required=False, default=3,
                         help='process SDK released within given days')
+    parser.add_argument('--persist-data', type=bool, required=False, default=False,
+                        help='persist data about release and files to database')
     args = parser.parse_args()
 
     github_token = args.github_token
 
-    command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days)
+    command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.persist_data)
 
     process(command_line_configuration)
 
