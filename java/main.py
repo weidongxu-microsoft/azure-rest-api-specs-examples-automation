@@ -194,7 +194,8 @@ def process_java_example(release: Release, sdk_examples_path: str,
                     md_str = format_markdown(doc_reference, example_lines)
 
                     # use the examples-java folder for Java example
-                    md_dir = example_dir + '-java'
+                    md_dir = (example_dir + '-java') if example_dir.endswith('/examples') \
+                        else example_dir.replace('/examples/', '/examples-java/')
                     md_dir_path = path.join(sdk_examples_path, md_dir)
                     os.makedirs(md_dir_path, exist_ok=True)
 
