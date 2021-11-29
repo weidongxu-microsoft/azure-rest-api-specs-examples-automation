@@ -17,12 +17,17 @@ class GoVet:
     tmp_path: str
     module: str
     modules: List[str]
+    golang_version: str
     examples: List[GoExample]
 
     def __init__(self, tmp_path: str, module: str, go_mod: str, examples: List[GoExample]):
         self.tmp_path = tmp_path
         self.module = module
         self.examples = examples
+
+        match = re.search(r'go ([.0-9]*)', go_mod, re.MULTILINE)
+        if match:
+            self.golang_version = match.group(1)
 
         self.modules = []
         match = re.search(r'github\.com/Azure/azure-sdk-for-go/sdk/azcore (v.*)', go_mod, re.MULTILINE)
@@ -51,6 +56,10 @@ class GoVet:
                 # mod
                 cmd = ['go', 'mod', 'init', 'm']
                 check_call(cmd, tmp_dir_name)
+
+                if self.golang_version:
+                    cmd = ['go', 'mod', 'edit', '-go', self.golang_version]
+                    check_call(cmd, tmp_dir_name)
 
                 cmd = ['go', 'mod', 'edit', '-require', self.module]
                 check_call(cmd, tmp_dir_name)
