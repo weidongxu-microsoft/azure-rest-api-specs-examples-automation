@@ -331,7 +331,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
                     published_at = datetime.fromisoformat(release['published_at'].replace('Z', '+00:00'))
                     if operation.date_start < published_at < operation.date_end:
                         release_tag = release['tag_name']
-                        if re.match(sdk.release_tag.regex_match, release_tag) and release_tag == 'sdk/resourcemanager/containerservice/armcontainerservice/v0.2.1':
+                        if re.match(sdk.release_tag.regex_match, release_tag):
                             package = re.match(sdk.release_tag.package_regex_group, release_tag).group(1)
                             version = re.match(sdk.release_tag.version_regex_group, release_tag).group(1)
                             release = Release(release_tag, package, version, published_at)
