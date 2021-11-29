@@ -215,7 +215,7 @@ def create_go_examples(release: Release, go_mod_filepath: str, sdk_examples_path
     for filepath in go_paths:
         go_examples += process_go_example(release, sdk_examples_path, filepath)
 
-    go_module = 'github.com/Azure/azure-sdk-for-go/' + release.package
+    go_module = f'github.com/Azure/azure-sdk-for-go/{release.package}@{release.version}'
     go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
 
     if go_vet_result.succeeded:

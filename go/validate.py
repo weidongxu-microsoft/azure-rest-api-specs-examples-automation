@@ -27,10 +27,10 @@ class GoVet:
         self.modules = []
         match = re.search(r'github\.com/Azure/azure-sdk-for-go/sdk/azcore (v.*)', go_mod, re.MULTILINE)
         if match:
-            self.modules.append(match.group(1))
+            self.modules.append('github.com/Azure/azure-sdk-for-go/sdk/azcore@' + match.group(1))
         match = re.search(r'github\.com/Azure/azure-sdk-for-go/sdk/azidentity (v.*)', go_mod, re.MULTILINE)
         if match:
-            self.modules.append(match.group(1))
+            self.modules.append('github.com/Azure/azure-sdk-for-go/sdk/azidentity@' + match.group(1))
 
     def vet(self) -> GoVetResult:
         with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir_name:
