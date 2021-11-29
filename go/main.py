@@ -255,11 +255,11 @@ def main():
     go_examples_path = path.join(sdk_path, go_examples_relative_path)
     go_mod_filepath = path.join(sdk_path, release.package, 'go.mod')
 
-    create_go_examples(release, go_mod_filepath, sdk_examples_path, go_examples_path)
+    succeeded = create_go_examples(release, go_mod_filepath, sdk_examples_path, go_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         output = {
-            'status': 'succeeded',
+            'status': 'succeeded' if succeeded else 'failed',
             'name': release.tag
         }
         json.dump(output, f_out, indent=2)
