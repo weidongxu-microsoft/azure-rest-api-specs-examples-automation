@@ -80,8 +80,9 @@ class GoVet:
 
                 logging.info('Run goimports')
                 # goimports
-                # cmd = ['go', 'install', 'golang.org/x/tools/cmd/goimports@latest']
-                # check_call(cmd, tmp_dir_name)
+                cmd = ['go', 'install', 'golang.org/x/tools/cmd/goimports@latest']
+                check_call(cmd, tmp_dir_name)
+
                 cmd = ['goimports', '-w', '.']
                 check_call(cmd, tmp_dir_name)
 
