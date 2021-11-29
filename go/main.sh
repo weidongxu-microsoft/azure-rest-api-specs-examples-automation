@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # sudo apt -y install golang-go
-
-export PATH=$PATH:$GOPATH/bin
+sudo apt -y install golang-golang-x-tools
 
 python3 go/main.py "$@"
