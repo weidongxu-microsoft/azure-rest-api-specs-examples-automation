@@ -68,9 +68,9 @@ class GoVet:
 
                 logging.info('Run goimports')
                 # goimports
-                # cmd = ['go', 'get', 'golang.org/x/tools/cmd/goimports']
+                # cmd = ['go', 'install', 'golang.org/x/tools/cmd/goimports@latest']
                 # check_call(cmd, tmp_dir_name)
-                cmd = ['goimports', '-w', '*.go']
+                cmd = ['goimports', '-w', '.']
                 check_call(cmd, tmp_dir_name)
 
                 logging.info('Build and vet')
