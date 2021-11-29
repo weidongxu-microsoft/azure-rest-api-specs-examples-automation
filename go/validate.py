@@ -75,6 +75,9 @@ class GoVet:
                     content = f.read()
                     logging.info(f'go.mod\n{content}')
 
+                cmd = ['go', 'install']
+                check_call(cmd, tmp_dir_name)
+
                 logging.info('Run goimports')
                 # goimports
                 # cmd = ['go', 'install', 'golang.org/x/tools/cmd/goimports@latest']
