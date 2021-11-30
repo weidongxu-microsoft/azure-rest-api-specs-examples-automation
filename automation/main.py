@@ -90,6 +90,7 @@ class Configuration:
 class CommandLineConfiguration:
     build_id: str
     release_in_days: int
+    language: str
     persist_data: bool
 
 
@@ -372,7 +373,8 @@ def process(command_line: CommandLineConfiguration):
     subprocess.check_call(cmd, cwd=tmp_root_path)
 
     for sdk_configuration in configuration.sdks:
-        process_sdk(configuration.operation, sdk_configuration)
+        if not command_line.language or command_line.language == sdk_configuration.language:
+            process_sdk(configuration.operation, sdk_configuration)
 
 
 def main():
@@ -388,18 +390,21 @@ def main():
 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--build-id', type=str, required=True,
-                        help='build ID')
+                        help='Build ID')
     parser.add_argument('--github-token', type=str, required=True,
                         help='GitHub token')
     parser.add_argument('--release-in-days', type=int, required=False, default=3,
-                        help='process SDK released within given days')
+                        help='Process SDK released within given days')
+    parser.add_argument('--language', type=str, required=False,
+                        help='Process SDK for specific language. Currently supports "java" and "go".')
     parser.add_argument('--persist-data', type=bool, required=False, default=False,
-                        help='persist data about release and files to database')
+                        help='Persist data about release and files to database')
     args = parser.parse_args()
 
     github_token = args.github_token
 
-    command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.persist_data)
+    command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.language,
+                                                          args.persist_data)
 
     process(command_line_configuration)
 

@@ -1,5 +1,7 @@
 trigger: none
 
+pr: none
+
 #schedules:
 #- cron: "0 0 * * *"
 #  displayName: Daily build
@@ -20,5 +22,5 @@ jobs:
           version: '1.17'
 
       - script: |
-          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(GITHUB_TOKEN) --release-in-days=$(RELEASE_IN_DAYS) --persist-data=`if $(PERSIST_DATA); then echo "--persist-data"; else echo ""; fi`
+          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(GITHUB_TOKEN) --release-in-days=$(RELEASE_IN_DAYS) --language=${LANGUAGE} --persist-data=`if $(PERSIST_DATA); then echo "--persist-data"; else echo ""; fi`
         displayName: 'Collect examples'
