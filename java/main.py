@@ -7,10 +7,12 @@ import json
 import argparse
 import logging
 import dataclasses
-from typing import List, Dict
+from typing import List
 
+from modules import JavaExample, JavaFormatResult
 from package import MavenPackage
 from format import JavaFormat
+
 
 script_path: str = '.'
 tmp_path: str
@@ -113,7 +115,7 @@ def break_down_aggregated_java_example(lines: List[str]) -> AggregatedJavaExampl
     return aggregated_java_example
 
 
-def format_java(java_format: JavaFormat, lines: List[str], old_class_name: str, new_class_name: str) -> List[str]:
+def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> List[str]:
     # format example as Java code
 
     new_lines = []
@@ -128,14 +130,7 @@ def format_java(java_format: JavaFormat, lines: List[str], old_class_name: str, 
         if line.startswith('package'):
             skip_head = False
 
-    java_code = ''.join(new_lines)
-
-    result = java_format.format(java_code)
-    if result.returncode == 0:
-        return result.formatted_code.splitlines(keepends=True)
-    else:
-        logging.error('Java code format failed')
-        return new_lines
+    return new_lines
 
 
 def format_markdown(doc_reference: str, lines: List[str]) -> str:
@@ -149,15 +144,16 @@ def format_markdown(doc_reference: str, lines: List[str]) -> str:
     return ''.join(md_lines)
 
 
-def process_java_example(release: Release, sdk_examples_path: str,
-                         java_format: JavaFormat, maven_package: MavenPackage,
-                         filepath: str):
+def process_java_example(filepath: str) -> List[JavaExample]:
+    # process aggregated Java sample to examples
+
     filename = path.basename(filepath)
     logging.info(f'Processing Java aggregated sample: {filename}')
 
     with open(filepath, encoding='utf-8') as f:
         lines = f.readlines()
 
+    java_examples = []
     if is_aggregated_java_example(lines):
         aggregated_java_example = break_down_aggregated_java_example(lines)
         for java_example_method in aggregated_java_example.methods:
@@ -174,64 +170,87 @@ def process_java_example(release: Release, sdk_examples_path: str,
                 # use Main as class name
                 old_class_name = filename.split('.')[0]
                 new_class_name = 'Main'
-                example_lines = format_java(java_format, example_lines, old_class_name, new_class_name)
+                example_lines = format_java(example_lines, old_class_name, new_class_name)
 
-                # compile example
-                java_example = ''.join(example_lines)
-                result = maven_package.test_example(java_example)
-                if result.returncode:
-                    # maven package fail, skip this example
-                    logging.error(f'Maven test failed, skip the example: {example_filename}')
-                    logging.info('Maven log:\n' + result.stdout)
-                else:
-                    md_filename = example_filename.split('.')[0] + '.md'
+                example_lines = ''.join(example_lines)
 
-                    # add doc reference to markdown, as guidance for user to configure project and authenticate
-                    doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
-                               f'{release.sdk_name}/{release.package}/README.md'
-                    doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
-                                    f'to your project and authenticate.'
-                    md_str = format_markdown(doc_reference, example_lines)
+                filename = example_filename.split('.')[0]
+                # use the examples-java folder for Go example
+                md_dir = (example_dir + '-java') if example_dir.endswith('/examples') \
+                    else example_dir.replace('/examples/', '/examples-java/')
 
-                    # use the examples-java folder for Java example
-                    md_dir = (example_dir + '-java') if example_dir.endswith('/examples') \
-                        else example_dir.replace('/examples/', '/examples-java/')
-                    md_dir_path = path.join(sdk_examples_path, md_dir)
-                    os.makedirs(md_dir_path, exist_ok=True)
+                java_example = JavaExample(filename, md_dir, ''.join(example_lines))
+                java_examples.append(java_example)
 
-                    md_file_path = path.join(md_dir_path, md_filename)
-                    with open(md_file_path, 'w', encoding='utf-8') as f:
-                        f.write(md_str)
-                    logging.info(f'Markdown written to file: {md_file_path}')
+    return java_examples
 
 
-def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str):
-    logging.info('Preparing tools and thread pool')
-
-    maven_package = MavenPackage(tmp_path, release.package, release.version)
+def validate_java_examples(release: Release, java_examples: List[JavaExample]) -> JavaFormatResult:
+    # batch validate Java examples
 
     java_format = JavaFormat(tmp_path, path.join(script_path, 'javaformat'))
     java_format.build()
+    java_format_result = java_format.format(java_examples)
+
+    if java_format_result.succeeded:
+        maven_package = MavenPackage(tmp_path, release.package, release.version)
+        succeeded = maven_package.compile(java_examples)
+        if not succeeded:
+            return JavaFormatResult(False, java_format_result.examples)
+
+    return java_format_result
+
+
+def generate_markdowns(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]):
+    # generate markdowns from Go examples
+
+    for java_example in java_examples:
+        md_dir = java_example.target_dir
+        md_filename = java_example.target_filename + '.md'
+
+        # add doc reference to markdown, as guidance for user to configure project and authenticate
+        doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
+                   f'{release.sdk_name}/{release.package}/README.md'
+        doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
+                        f'to your project and authenticate.'
+        md_str = format_markdown(doc_reference, java_example.content.splitlines(keepends=True))
+
+        # use the examples-java folder for Java example
+        md_dir_path = path.join(sdk_examples_path, md_dir)
+        os.makedirs(md_dir_path, exist_ok=True)
+
+        md_file_path = path.join(md_dir_path, md_filename)
+        with open(md_file_path, 'w', encoding='utf-8') as f:
+            f.write(md_str)
+        logging.info(f'Markdown written to file: {md_file_path}')
+
+
+def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str) -> bool:
+    logging.info('Preparing tools and thread pool')
 
     logging.info(f'Processing SDK examples: {release.sdk_name}')
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        java_paths = []
-        for root, dirs, files in os.walk(java_examples_path):
-            for name in files:
-                filepath = path.join(root, name)
-                if path.splitext(filepath)[1] == '.java':
-                    java_paths.append(filepath)
+    java_examples = []
+    java_paths = []
+    for root, dirs, files in os.walk(java_examples_path):
+        for name in files:
+            filepath = path.join(root, name)
+            if path.splitext(filepath)[1] == '.java':
+                java_paths.append(filepath)
 
-        futures = []
-        for filepath in java_paths:
-            futures.append(executor.submit(lambda filepath1=filepath: process_java_example(
-                    release, sdk_examples_path,
-                    java_format, maven_package,
-                    filepath1)))
+    for filepath in java_paths:
+        java_examples += process_java_example(filepath)
 
-        concurrent.futures.wait(futures, return_when=concurrent.futures.ALL_COMPLETED)
-        for future in futures:
-            future.result()
+    if java_examples:
+        logging.info('Validating SDK examples')
+        java_format_result = validate_java_examples(release, java_examples)
+
+        if java_format_result.succeeded:
+            generate_markdowns(release, sdk_examples_path, java_examples)
+        else:
+            logging.error('Validation failed')
+    else:
+        logging.info('SDK examples not found')
+        return True
 
 
 def main():
@@ -266,12 +285,12 @@ def main():
     java_examples_relative_path = path.join('sdk', release.sdk_name, release.package, 'src', 'samples')
     java_examples_path = path.join(sdk_path, java_examples_relative_path)
 
-    create_java_examples(release, sdk_examples_path, java_examples_path)
+    succeeded = create_java_examples(release, sdk_examples_path, java_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         group = 'com.azure.resourcemanager'
         output = {
-            'status': 'succeeded',
+            'status': 'succeeded' if succeeded else 'failed',
             'name': f'{group}:{release.package}:{release.version}'
         }
         json.dump(output, f_out, indent=2)

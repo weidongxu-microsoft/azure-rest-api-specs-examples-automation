@@ -1,6 +1,7 @@
 import unittest
 from os import path
 
+from modules import JavaExample
 from package import MavenPackage
 
 
@@ -26,8 +27,8 @@ public final class Main {
                 Context.NONE);
     }
 }'''
-        result = maven_package.test_example(code)
-        self.assertEqual(0, result.returncode)
+        result = maven_package.compile([JavaExample('', '', code)])
+        self.assertTrue(result)
 
     def test_incorrect_example(self):
         tmp_path = path.abspath('.')
@@ -48,5 +49,5 @@ public final class Main {
                 Context.NONE);
     }
 }'''
-        result = maven_package.test_example(code)
-        self.assertNotEqual(0, result.returncode)
+        result = maven_package.compile([JavaExample('', '', code)])
+        self.assertFalse(result)

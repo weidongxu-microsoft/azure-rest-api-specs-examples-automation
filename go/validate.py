@@ -1,4 +1,4 @@
-import os
+from os import path
 import tempfile
 import subprocess
 import re
@@ -45,7 +45,7 @@ class GoVet:
                 filename = 'code' + str(filename_no) + '.go'
                 filename_no += 1
 
-                filepath = os.path.join(tmp_dir_name, filename)
+                filepath = path.join(tmp_dir_name, filename)
 
                 with open(filepath, 'w', encoding='utf-8') as f:
                     f.write(example.content)
@@ -71,7 +71,7 @@ class GoVet:
                 cmd = ['go', 'mod', 'tidy']
                 check_call(cmd, tmp_dir_name)
 
-                with open(os.path.join(tmp_dir_name, 'go.mod'), encoding='utf-8') as f:
+                with open(path.join(tmp_dir_name, 'go.mod'), encoding='utf-8') as f:
                     content = f.read()
                     logging.info(f'go.mod\n{content}')
 
@@ -101,7 +101,7 @@ class GoVet:
                 filename = 'code' + str(filename_no) + '.go'
                 filename_no += 1
 
-                filepath = os.path.join(tmp_dir_name, filename)
+                filepath = path.join(tmp_dir_name, filename)
 
                 with open(filepath, encoding='utf-8') as f:
                     content = f.read()
