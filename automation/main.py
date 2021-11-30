@@ -205,10 +205,16 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
         # parse output.json
         release_name = release.tag
+        succeeded = True
         if path.isfile(output_json_path):
             with open(output_json_path, 'r', encoding='utf-8') as f_in:
                 output = json.load(f_in)
+                logging.info(f'Output JSON from worker: {output}')
                 release_name = output['name']
+                succeeded = ('succeeded' == output['status'])
+
+        if not succeeded:
+            return
 
         # commit and create pull request
         # check for new examples
