@@ -125,7 +125,7 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
             new_lines.append(line)
 
         # remove package
-        if line.startswith('package'):
+        if line.startswith('package '):
             skip_head = False
 
     return new_lines

@@ -221,7 +221,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 succeeded = ('succeeded' == output['status'])
 
         if not succeeded:
-            aggregated_error.errors.append(RuntimeError(f'Process failed for release: {release.tag}'))
+            aggregated_error.errors.append(RuntimeError(f'Worker failed for release tag: {release.tag}'))
             return
 
         # commit and create pull request
