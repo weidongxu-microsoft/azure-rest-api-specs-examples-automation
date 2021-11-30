@@ -238,7 +238,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             logging.info('Command line: ' + ' '.join(cmd))
             output = subprocess.check_output(cmd, cwd=example_repo_path)
             output_str = str(output, 'utf-8')
-            changed_files = [file.strip()[2:] for file in output_str.splitlines()]
+            changed_files = [file.strip()[3:] for file in output_str.splitlines()]
 
             # git checkout new branch
             branch = f'automation-examples_{sdk.name}_{release.tag}_{operation.build_id}'
