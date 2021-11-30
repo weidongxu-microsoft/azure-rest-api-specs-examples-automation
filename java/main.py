@@ -242,12 +242,14 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
 
     if java_examples:
         logging.info('Validating SDK examples')
-        java_format_result = validate_java_examples(release, java_examples)
+        java_build_result = validate_java_examples(release, java_examples)
 
-        if java_format_result.succeeded:
+        if java_build_result.succeeded:
             generate_markdowns(release, sdk_examples_path, java_examples)
         else:
             logging.error('Validation failed')
+
+        return java_build_result.succeeded
     else:
         logging.info('SDK examples not found')
         return True
