@@ -6,21 +6,31 @@ package com.azure;
 import com.google.googlejavaformat.java.Formatter;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Main {
 
-    public static void main(String[] args) throws Exception {
-        assert(args.length > 0);
+    // run with "mvn --quiet package exec:java"
 
-        String filepath = args[0];
-        String code = Files.readString(Path.of(filepath), StandardCharsets.UTF_8);
+    public static void main(String[] args) throws Exception {
+        assert args.length > 0;
+
+        String srcPath = args[0];
+        Path srcDir = Path.of(srcPath);
+
+        assert Files.isDirectory(srcDir);
 
         Formatter formatter = new Formatter();
-        String formattedCode = formatter.formatSourceAndFixImports(code);
-
-        // run with "mvn --quiet package exec:java"
-        System.out.println(formattedCode);
+        DirectoryStream<Path> directoryStream =
+                Files.newDirectoryStream(srcDir, entry -> entry.toString().endsWith(".java"));
+        for (Path path : directoryStream) {
+            if (Files.isRegularFile(path)) {
+                String code = Files.readString(path, StandardCharsets.UTF_8);
+                String formattedCode = formatter.formatSourceAndFixImports(code);
+                Files.write(path, formattedCode.getBytes(StandardCharsets.UTF_8));
+            }
+        }
     }
 }

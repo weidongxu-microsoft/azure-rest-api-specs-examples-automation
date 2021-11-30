@@ -1,14 +1,14 @@
 from os import path
+import platform
 import subprocess
-import dataclasses
 import tempfile
 import logging
+from typing import List
+
+from modules import JavaExample, JavaFormatResult
 
 
-@dataclasses.dataclass(eq=True)
-class CompletedJavaCode:
-    returncode: int
-    formatted_code: str = ''
+OS_WINDOWS = platform.system().lower() == 'windows'
 
 
 class JavaFormat:
@@ -20,33 +20,48 @@ class JavaFormat:
         self.maven_path = maven_path
 
     def build(self):
-        cmd = ['mvn', '--quiet', 'package']
+        cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), '--quiet', 'package']
         logging.info('Build javaformat')
         logging.info('Command line: ' + ' '.join(cmd))
         subprocess.check_call(cmd, cwd=self.maven_path)
 
-    def format(self, java_example: str) -> CompletedJavaCode:
+    def format(self, examples: List[JavaExample]) -> JavaFormatResult:
         with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir_name:
-            tmp_filepath = path.join(tmp_dir_name, 'tmp.java')
+            filename_no = 1
+            for example in examples:
+                filename = 'Code' + str(filename_no) + '.java'
+                filename_no += 1
 
-            with open(tmp_filepath, 'w', encoding='utf-8') as f:
-                f.write(java_example)
+                filepath = path.join(tmp_dir_name, filename)
 
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(example.content)
+
+            logging.info('Format java code')
             cmd = ['java',
                    '--add-exports', 'jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED',
                    '--add-exports', 'jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED',
                    '--add-exports', 'jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED',
                    '--add-exports', 'jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED',
                    '--add-exports', 'jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
-                   '-jar', 'target/javaformat-1.0.0-beta.1-jar-with-dependencies.jar', tmp_filepath]
-            # logging.info('Format java code')
-            # logging.info('Command line: ' + ' '.join(cmd))
-            result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=self.maven_path)
+                   '-jar', 'target/javaformat-1.0.0-beta.1-jar-with-dependencies.jar', tmp_dir_name]
+            logging.info('Command line: ' + ' '.join(cmd))
+            result = subprocess.run(cmd, cwd=self.maven_path)
 
             if result.returncode:
-                return CompletedJavaCode(result.returncode)
-            else:
-                formatted_code = result.stdout
-                if formatted_code.endswith('\n\n'):
-                    formatted_code = formatted_code[:-1]
-                return CompletedJavaCode(result.returncode, formatted_code)
+                return JavaFormatResult(False, [])
+
+            # read formatted examples from java files
+            formatted_examples = []
+            filename_no = 1
+            for example in examples:
+                filename = 'Code' + str(filename_no) + '.java'
+                filename_no += 1
+
+                filepath = path.join(tmp_dir_name, filename)
+
+                with open(filepath, encoding='utf-8') as f:
+                    content = f.read()
+                    formatted_examples.append(JavaExample(example.target_filename, example.target_dir, content))
+
+            return JavaFormatResult(True, formatted_examples)

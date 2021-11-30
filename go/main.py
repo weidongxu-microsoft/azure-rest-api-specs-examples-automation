@@ -130,7 +130,7 @@ def format_go(lines: List[str]) -> List[str]:
     return new_lines
 
 
-def process_go_example(release: Release, sdk_examples_path: str, filepath: str) -> List[GoExample]:
+def process_go_example(filepath: str) -> List[GoExample]:
     # process aggregated Go sample to examples
 
     filename = path.basename(filepath)
@@ -213,19 +213,23 @@ def create_go_examples(release: Release,
             if path.splitext(filepath)[1] == '.go' and filepath.endswith('_test.go'):
                 go_paths.append(filepath)
 
+    logging.info(f'Processing SDK examples: {release.package}')
     go_examples = []
     for filepath in go_paths:
-        go_examples += process_go_example(release, sdk_examples_path, filepath)
+        go_examples += process_go_example(filepath)
 
     if go_examples:
+        logging.info('Validating SDK examples')
         go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
 
         if go_vet_result.succeeded:
             generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
+        else:
+            logging.error('Validation failed')
 
         return go_vet_result.succeeded
     else:
-        # examples not found
+        logging.info('SDK examples not found')
         return True
 
 

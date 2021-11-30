@@ -1,8 +1,19 @@
 import os
-import tempfile
 from os import path
+import platform
+import tempfile
 import subprocess
 import logging
+from typing import List
+
+from modules import JavaExample
+
+
+OS_WINDOWS = platform.system().lower() == 'windows'
+
+
+def replace_class_name(content: str, old_class_name: str, new_class_name: str) -> str:
+    return content.replace('class ' + old_class_name + ' {', 'class ' + new_class_name + ' {', 1)
 
 
 class MavenPackage:
@@ -15,21 +26,28 @@ class MavenPackage:
         self.package = package
         self.version = version
 
-    def test_example(self, java_example: str) -> subprocess.CompletedProcess:
+    def compile(self, examples: List[JavaExample]) -> bool:
         with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir_name:
             maven_path = tmp_dir_name
 
             self.__prepare_workspace(maven_path)
 
-            example_code_path = path.join(maven_path, 'src', 'main', 'java', 'Main.java')
+            filename_no = 1
+            for example in examples:
+                class_name = 'Main' + str(filename_no)
+                code_path = path.join(maven_path, 'src', 'main', 'java', class_name + '.java')
+                filename_no += 1
 
-            with open(example_code_path, 'w', encoding='utf-8') as f:
-                f.write(java_example)
+                content = replace_class_name(example.content, 'Main', class_name)
 
-            cmd = ['mvn', '--no-transfer-progress', 'package']
-            # logging.info('Run mvn package')
-            # logging.info('Command line: ' + ' '.join(cmd))
-            return subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=maven_path)
+                with open(code_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+
+            cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), '--no-transfer-progress', 'package']
+            logging.info('Run mvn package')
+            logging.info('Command line: ' + ' '.join(cmd))
+            code = subprocess.run(cmd, cwd=maven_path).returncode
+            return code == 0
 
     def __prepare_workspace(self, maven_path: str):
         # make dir for maven and src/main/java

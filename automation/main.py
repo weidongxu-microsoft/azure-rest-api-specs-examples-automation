@@ -102,6 +102,11 @@ class Release:
     date: datetime
 
 
+@dataclasses.dataclass(eq=True, frozen=True)
+class AggregatedError:
+    errors: List[Exception]
+
+
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
     with open(path.join(root_path, 'automation/configuration.json'), 'r', encoding='utf-8') as f_in:
         config = json.load(f_in)
@@ -145,7 +150,8 @@ def create_pull_request(operation: OperationConfiguration, title: str, head: str
         logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
 
 
-def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release):
+def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release,
+                    aggregated_error: AggregatedError):
     # process per release
 
     logging.info(f'Processing release: {release.tag}')
@@ -215,6 +221,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 succeeded = ('succeeded' == output['status'])
 
         if not succeeded:
+            aggregated_error.errors.append(RuntimeError(f'Worker failed for release tag: {release.tag}'))
             return
 
         # commit and create pull request
@@ -270,8 +277,9 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             if operation.persist_data:
                 # commit changes to database
                 commit_database(release_name, sdk.language, release, changed_files)
-    except subprocess.CalledProcessError as error:
-        logging.error(f'Call error: {error}')
+    except subprocess.CalledProcessError as e:
+        logging.error(f'Call error: {e}')
+        aggregated_error.errors.append(e)
     finally:
         if clean_tmp_dir:
             shutil.rmtree(tmp_path, ignore_errors=True)
@@ -311,7 +319,7 @@ def commit_database(release_name: str, language: str, release: Release, changed_
         subprocess.check_call(cmd, cwd=database_path)
 
 
-def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
+def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggregated_error: AggregatedError):
     # process for sdk
 
     logging.info(f'Processing sdk: {sdk.name}')
@@ -340,13 +348,17 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration):
                             logging.info(f'Found release tag: {release.tag}')
         else:
             logging.error(f'Request failed: {releases_response.status_code}\n{releases_response.json()}')
+            try:
+                releases_response.raise_for_status()
+            except Exception as e:
+                aggregated_error.errors.append(e)
             break
 
     for release in releases:
-        process_release(operation, sdk, release)
+        process_release(operation, sdk, release, aggregated_error)
 
 
-def process(command_line: CommandLineConfiguration):
+def process(command_line: CommandLineConfiguration, aggregated_error: AggregatedError):
     configuration = load_configuration(command_line)
 
     # checkout azure-rest-api-specs repo
@@ -374,7 +386,7 @@ def process(command_line: CommandLineConfiguration):
 
     for sdk_configuration in configuration.sdks:
         if not command_line.language or command_line.language == sdk_configuration.language:
-            process_sdk(configuration.operation, sdk_configuration)
+            process_sdk(configuration.operation, sdk_configuration, aggregated_error)
 
 
 def main():
@@ -406,7 +418,11 @@ def main():
     command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.language,
                                                           args.persist_data)
 
-    process(command_line_configuration)
+    aggregated_error = AggregatedError([])
+    process(command_line_configuration, aggregated_error)
+
+    if aggregated_error.errors:
+        raise RuntimeError(aggregated_error.errors)
 
 
 if __name__ == '__main__':

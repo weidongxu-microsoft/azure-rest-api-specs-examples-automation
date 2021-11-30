@@ -1,6 +1,7 @@
 import unittest
 from os import path
 
+from modules import JavaExample, JavaFormatResult
 from format import JavaFormat
 
 
@@ -13,8 +14,8 @@ class TestJavaFormat(unittest.TestCase):
         java_format.build()
         code = '''class Main {}
 '''
-        result = java_format.format(code)
-        self.assertEqual(0, result.returncode)
+        result = java_format.format([JavaExample('', '', code)])
+        self.assertTrue(result.succeeded)
         self.assertEqual('''class Main {
 }
-''', result.formatted_code)
+''', result.examples[0].content)
