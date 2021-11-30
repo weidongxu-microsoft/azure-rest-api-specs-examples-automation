@@ -217,12 +217,16 @@ def create_go_examples(release: Release,
     for filepath in go_paths:
         go_examples += process_go_example(release, sdk_examples_path, filepath)
 
-    go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
+    if go_examples:
+        go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
 
-    if go_vet_result.succeeded:
-        generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
+        if go_vet_result.succeeded:
+            generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
 
-    return go_vet_result.succeeded
+        return go_vet_result.succeeded
+    else:
+        # examples not found
+        return True
 
 
 def main():
