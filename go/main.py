@@ -203,7 +203,9 @@ def generate_markdowns(release: Release, sdk_examples_path: str, go_examples: Li
         logging.info(f'Markdown written to file: {md_file_path}')
 
 
-def create_go_examples(release: Release, go_mod_filepath: str, sdk_examples_path: str, go_examples_path: str) -> bool:
+def create_go_examples(release: Release,
+                       go_module: str, go_mod_filepath: str,
+                       sdk_examples_path: str, go_examples_path: str) -> bool:
     go_paths = []
     for root, dirs, files in os.walk(go_examples_path):
         for name in files:
@@ -215,7 +217,6 @@ def create_go_examples(release: Release, go_mod_filepath: str, sdk_examples_path
     for filepath in go_paths:
         go_examples += process_go_example(release, sdk_examples_path, filepath)
 
-    go_module = f'github.com/Azure/azure-sdk-for-go/{release.package}@{release.version}'
     go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
 
     if go_vet_result.succeeded:
@@ -251,16 +252,18 @@ def main():
                       config['release']['package'],
                       config['release']['version'])
 
+    go_module = f'github.com/Azure/azure-sdk-for-go/{release.package}@{release.version}'
+
     go_examples_relative_path = release.package
     go_examples_path = path.join(sdk_path, go_examples_relative_path)
     go_mod_filepath = path.join(sdk_path, release.package, 'go.mod')
 
-    succeeded = create_go_examples(release, go_mod_filepath, sdk_examples_path, go_examples_path)
+    succeeded = create_go_examples(release, go_module, go_mod_filepath, sdk_examples_path, go_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         output = {
             'status': 'succeeded' if succeeded else 'failed',
-            'name': release.tag
+            'name': go_module
         }
         json.dump(output, f_out, indent=2)
 
