@@ -1,6 +1,4 @@
 import sys
-import concurrent
-from concurrent.futures import ThreadPoolExecutor
 import os
 from os import path
 import json
