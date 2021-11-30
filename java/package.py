@@ -1,11 +1,15 @@
 import os
-import tempfile
 from os import path
+import platform
+import tempfile
 import subprocess
 import logging
 from typing import List
 
 from modules import JavaExample
+
+
+OS_WINDOWS = platform.system().lower() == 'windows'
 
 
 def replace_class_name(content: str, old_class_name: str, new_class_name: str) -> str:
@@ -38,7 +42,7 @@ class MavenPackage:
                 with open(example_code_path, 'w', encoding='utf-8') as f:
                     f.write(content)
 
-            cmd = ['mvn', '--no-transfer-progress', 'package']
+            cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), '--no-transfer-progress', 'package']
             logging.info('Run mvn package')
             logging.info('Command line: ' + ' '.join(cmd))
             code = subprocess.run(cmd, cwd=maven_path).returncode

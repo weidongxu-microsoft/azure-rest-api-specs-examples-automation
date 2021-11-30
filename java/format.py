@@ -1,10 +1,14 @@
 from os import path
+import platform
 import subprocess
 import tempfile
 import logging
 from typing import List
 
 from modules import JavaExample, JavaFormatResult
+
+
+OS_WINDOWS = platform.system().lower() == 'windows'
 
 
 class JavaFormat:
@@ -16,7 +20,7 @@ class JavaFormat:
         self.maven_path = maven_path
 
     def build(self):
-        cmd = ['mvn', '--quiet', 'package']
+        cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), '--quiet', 'package']
         logging.info('Build javaformat')
         logging.info('Command line: ' + ' '.join(cmd))
         subprocess.check_call(cmd, cwd=self.maven_path)
