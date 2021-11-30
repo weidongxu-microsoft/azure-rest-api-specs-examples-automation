@@ -123,7 +123,7 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
     for line in lines:
         if not skip_head:
             # use new class name
-            line = line.replace(old_class_name, new_class_name)
+            line = line.replace('class ' + old_class_name + ' {', 'class ' + new_class_name + ' {', 1)
             new_lines.append(line)
 
         # remove package
@@ -171,8 +171,6 @@ def process_java_example(filepath: str) -> List[JavaExample]:
                 old_class_name = filename.split('.')[0]
                 new_class_name = 'Main'
                 example_lines = format_java(example_lines, old_class_name, new_class_name)
-
-                example_lines = ''.join(example_lines)
 
                 filename = example_filename.split('.')[0]
                 # use the examples-java folder for Go example
@@ -245,7 +243,7 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
         java_build_result = validate_java_examples(release, java_examples)
 
         if java_build_result.succeeded:
-            generate_markdowns(release, sdk_examples_path, java_examples)
+            generate_markdowns(release, sdk_examples_path, java_build_result.examples)
         else:
             logging.error('Validation failed')
 
