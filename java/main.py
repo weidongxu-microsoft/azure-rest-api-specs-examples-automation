@@ -151,6 +151,11 @@ def process_java_example(filepath: str) -> List[JavaExample]:
     with open(filepath, encoding='utf-8') as f:
         lines = f.readlines()
 
+    class_name = filename.split('.')[0]
+    return process_java_example_content(lines, class_name)
+
+
+def process_java_example_content(lines: List[str], class_name: str) -> List[JavaExample]:
     java_examples = []
     if is_aggregated_java_example(lines):
         aggregated_java_example = break_down_aggregated_java_example(lines)
@@ -160,13 +165,13 @@ def process_java_example(filepath: str) -> List[JavaExample]:
 
                 # re-construct the example class, from example method
                 example_lines = aggregated_java_example.class_opening + java_example_method.content \
-                    + aggregated_java_example.class_closing
+                                + aggregated_java_example.class_closing
 
                 example_filepath = java_example_method.example_relative_path
                 example_dir, example_filename = path.split(example_filepath)
 
                 # use Main as class name
-                old_class_name = filename.split('.')[0]
+                old_class_name = class_name
                 new_class_name = 'Main'
                 example_lines = format_java(example_lines, old_class_name, new_class_name)
 
