@@ -35,11 +35,12 @@ class MavenPackage:
             filename_no = 1
             for example in examples:
                 class_name = 'Main' + str(filename_no)
-                example_code_path = path.join(maven_path, 'src', 'main', 'java', class_name + '.java')
+                code_path = path.join(maven_path, 'src', 'main', 'java', class_name + '.java')
+                filename_no += 1
 
                 content = replace_class_name(example.content, 'Main', class_name)
 
-                with open(example_code_path, 'w', encoding='utf-8') as f:
+                with open(code_path, 'w', encoding='utf-8') as f:
                     f.write(content)
 
             cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), '--no-transfer-progress', 'package']

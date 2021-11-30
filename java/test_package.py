@@ -12,13 +12,7 @@ class TestMavenPackage(unittest.TestCase):
         maven_package = MavenPackage(tmp_path, 'azure-resourcemanager-postgresqlflexibleserver', '1.0.0-beta.3')
         code = '''import com.azure.core.util.Context;
 import com.azure.resourcemanager.postgresqlflexibleserver.models.NameAvailabilityRequest;
-/** Samples for CheckNameAvailability Execute. */
 public final class Main {
-    /**
-     * Sample code: NameAvailability.
-     *
-     * @param manager Entry point to PostgreSqlManager.
-     */
     public static void nameAvailability(com.azure.resourcemanager.postgresqlflexibleserver.PostgreSqlManager manager) {
         manager
             .checkNameAvailabilities()
@@ -33,14 +27,21 @@ public final class Main {
     def test_incorrect_example(self):
         tmp_path = path.abspath('.')
         maven_package = MavenPackage(tmp_path, 'azure-resourcemanager-postgresqlflexibleserver', '1.0.0-beta.3')
+
+        code1 = '''import com.azure.core.util.Context;
+        import com.azure.resourcemanager.postgresqlflexibleserver.models.NameAvailabilityRequest;
+        public final class Main {
+            public static void nameAvailability(com.azure.resourcemanager.postgresqlflexibleserver.PostgreSqlManager manager) {
+                manager
+                    .checkNameAvailabilities()
+                    .executeWithResponse(
+                        new NameAvailabilityRequest().withName("name1").withType("Microsoft.DBforPostgreSQL/flexibleServers"),
+                        Context.NONE);
+            }
+        }'''
+
         # code missing "import"
-        code = '''/** Samples for CheckNameAvailability Execute. */
-public final class Main {
-    /**
-     * Sample code: NameAvailability.
-     *
-     * @param manager Entry point to PostgreSqlManager.
-     */
+        code2 = '''public final class Main {
     public static void nameAvailability(com.azure.resourcemanager.postgresqlflexibleserver.PostgreSqlManager manager) {
         manager
             .checkNameAvailabilities()
@@ -49,5 +50,5 @@ public final class Main {
                 Context.NONE);
     }
 }'''
-        result = maven_package.compile([JavaExample('', '', code)])
+        result = maven_package.compile([JavaExample('', '', code2), JavaExample('', '', code1)])
         self.assertFalse(result)
