@@ -1,0 +1,26 @@
+trigger: none
+
+pr: none
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily build
+  branches:
+    include:
+    - main
+
+jobs:
+  - job: Automation
+    timeoutInMinutes: 360
+
+    pool:
+      vmImage: ubuntu-20.04
+
+    steps:
+      - task: GoTool@0
+        inputs:
+          version: '1.17'
+
+      - script: |
+          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(GITHUB_TOKEN) --release-in-days=3 --persist-data
+        displayName: 'Collect examples'
