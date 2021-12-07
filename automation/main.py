@@ -409,14 +409,14 @@ def main():
                         help='Process SDK released within given days')
     parser.add_argument('--language', type=str, required=False,
                         help='Process SDK for specific language. Currently supports "java" and "go".')
-    parser.add_argument('--persist-data', type=bool, required=False, default=False,
+    parser.add_argument('--persist-data', type=str, required=False, default='false',
                         help='Persist data about release and files to database')
     args = parser.parse_args()
 
     github_token = args.github_token
 
     command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.language,
-                                                          args.persist_data)
+                                                          args.persist_data.lower() == 'true')
 
     aggregated_error = AggregatedError([])
     process(command_line_configuration, aggregated_error)

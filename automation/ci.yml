@@ -22,5 +22,5 @@ jobs:
           version: '1.17'
 
       - script: |
-          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(GITHUB_TOKEN) --release-in-days=$(RELEASE_IN_DAYS) --language=${LANGUAGE}
+          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(GITHUB_TOKEN) --release-in-days=$(RELEASE_IN_DAYS) --language=${LANGUAGE} --persist-data=${PERSIST_DATA}
         displayName: 'Collect examples'
