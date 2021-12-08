@@ -9,6 +9,9 @@ pr: none
 #    include:
 #    - main
 
+variables:
+- group: azfluent
+
 jobs:
   - job: Automation
     timeoutInMinutes: 360
