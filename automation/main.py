@@ -5,15 +5,15 @@ import sys
 import subprocess
 import tempfile
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 import json
-import re
 import argparse
 import logging
-import dataclasses
-from typing import List
 import itertools
 import requests
+
+from models import *
+from github import GitHubRepository
 try:
     from database import Database
 except ImportError:
@@ -32,79 +32,6 @@ tmp_sdk_folder: str = 'sdk'
 automation_repo = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
 database_branch = 'database'
 database_folder = 'db'
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class ReleaseTagConfiguration:
-    regex_match: str
-    package_regex_group: str
-    version_regex_group: str
-
-
-@dataclasses.dataclass(eq=True)
-class Script:
-    run: str
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class SdkConfiguration:
-    name: str
-    language: str
-    repository: str
-    release_tag: ReleaseTagConfiguration
-    script: Script
-
-    @property
-    def repository_owner(self) -> str:
-        return re.match(r'https://github.com/([^/:]+)/.*', self.repository).group(1)
-
-    @property
-    def repository_name(self) -> str:
-        return re.match(r'https://github.com/[^/:]+/(.*)', self.repository).group(1)
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class OperationConfiguration:
-    sdk_examples_repository: str
-    build_id: str
-    persist_data: bool
-    date_start: datetime
-    date_end: datetime
-
-    @property
-    def repository_owner(self) -> str:
-        return re.match(r'https://github.com/([^/:]+)/.*', self.sdk_examples_repository).group(1)
-
-    @property
-    def repository_name(self) -> str:
-        return re.match(r'https://github.com/[^/:]+/(.*)', self.sdk_examples_repository).group(1)
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class Configuration:
-    operation: OperationConfiguration
-    sdks: List[SdkConfiguration]
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class CommandLineConfiguration:
-    build_id: str
-    release_in_days: int
-    language: str
-    persist_data: bool
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class Release:
-    tag: str
-    package: str
-    version: str
-    date: datetime
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class AggregatedError:
-    errors: List[Exception]
 
 
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
@@ -132,22 +59,18 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
     return Configuration(operation_configuration, sdk_configurations)
 
 
-def create_pull_request(operation: OperationConfiguration, title: str, head: str):
-    logging.info(f'Create pull request: {head}')
+def merge_pull_requests(operation: OperationConfiguration):
+    logging.info('Merge pull requests')
 
-    request_uri = f'https://api.github.com/repos/{operation.repository_owner}/{operation.repository_name}/pulls'
-    request_body = {
-        'title': title,
-        'head': head,
-        'base': 'main'
-    }
-    pull_request_response = requests.post(request_uri,
-                                          json=request_body,
-                                          headers={'Authorization': f'token {github_token}'})
-    if pull_request_response.status_code == 201:
-        logging.info('Pull request created')
-    else:
-        logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
+    repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
+
+    pull_requests = repo.list_pull_requests()
+    for pull_request in pull_requests:
+        title = pull_request['title']
+        if title.startswith('[Automation]'):
+            repo.merge_pull_request(pull_request)
+            # wait a few seconds to avoid 409
+            time.sleep(5)
 
 
 def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release,
@@ -270,13 +193,18 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             # logging.info('Command line: ' + ' '.join(cmd))
             subprocess.check_call(cmd, cwd=example_repo_path)
 
-            # create github pull request
-            head = f'{operation.repository_owner}:{branch}'
-            create_pull_request(operation, title, head)
+            try:
+                # create github pull request
+                head = f'{operation.repository_owner}:{branch}'
+                repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
+                repo.create_pull_request(title, head)
 
-            if operation.persist_data:
-                # commit changes to database
-                commit_database(release_name, sdk.language, release, changed_files)
+                if operation.persist_data:
+                    # commit changes to database
+                    commit_database(release_name, sdk.language, release, changed_files)
+            except Exception as e:
+                aggregated_error.errors.append(e)
+
     except subprocess.CalledProcessError as e:
         logging.error(f'Call error: {e}')
         aggregated_error.errors.append(e)
@@ -324,7 +252,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
 
     logging.info(f'Processing sdk: {sdk.name}')
     releases = []
-    # since there is no ordering from github, just get all releases (exclude draft=True), and hope paging is correct
+    # since there is no ordering from GitHub, just get all releases (exclude draft=True), and hope paging is correct
     for page in itertools.count(start=1):
         request_uri = f'https://api.github.com/repos/{sdk.repository_owner}/{sdk.repository_name}/releases'
         releases_response = requests.get(request_uri,
@@ -360,6 +288,9 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
 
 def process(command_line: CommandLineConfiguration, aggregated_error: AggregatedError):
     configuration = load_configuration(command_line)
+
+    if command_line.merge_pr:
+        merge_pull_requests(configuration.operation)
 
     # checkout azure-rest-api-specs repo
     tmp_root_path = path.join(root_path, tmp_folder)
@@ -411,12 +342,15 @@ def main():
                         help='Process SDK for specific language. Currently supports "java" and "go".')
     parser.add_argument('--persist-data', type=str, required=False, default='false',
                         help='Persist data about release and files to database')
+    parser.add_argument('--merge-pull-request', type=str, required=False, default='false',
+                        help='Merge GitHub pull request before new processing')
     args = parser.parse_args()
 
     github_token = args.github_token
 
     command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.language,
-                                                          args.persist_data.lower() == 'true')
+                                                          args.persist_data.lower() == 'true',
+                                                          args.merge_pull_request.lower() == 'true')
 
     aggregated_error = AggregatedError([])
     process(command_line_configuration, aggregated_error)

@@ -25,5 +25,5 @@ jobs:
           version: '1.17'
 
       - script: |
-          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(github-token) --release-in-days=$(RELEASE_IN_DAYS) --language=${LANGUAGE} --persist-data=${PERSIST_DATA}
+          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(github-token) --release-in-days=$(RELEASE_IN_DAYS) --language=${LANGUAGE} --persist-data=${PERSIST_DATA} --merge-pull-request=false
         displayName: 'Collect examples'
