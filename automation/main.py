@@ -11,7 +11,7 @@ import re
 import argparse
 import logging
 import dataclasses
-from typing import List
+from typing import List, Dict
 import itertools
 import requests
 try:
@@ -92,6 +92,7 @@ class CommandLineConfiguration:
     release_in_days: int
     language: str
     persist_data: bool
+    merge_pr: bool
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -148,6 +149,53 @@ def create_pull_request(operation: OperationConfiguration, title: str, head: str
         logging.info('Pull request created')
     else:
         logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
+
+
+def list_pull_requests(operation: OperationConfiguration) -> List[Dict]:
+    logging.info(f'List pull requests')
+
+    request_uri = f'https://api.github.com/repos/{operation.repository_owner}/{operation.repository_name}/pulls' \
+                  f'?per_page=100'
+    pull_request_response = requests.get(request_uri,
+                                         headers={'Authorization': f'token {github_token}'})
+    if pull_request_response.status_code == 201:
+        logging.info('Pull request created')
+        return pull_request_response.json()
+    else:
+        logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
+        return []
+
+
+def merge_pull_request(operation: OperationConfiguration, pull_request: Dict):
+    title = pull_request['title']
+    logging.info(f'Merge pull request: {title}')
+
+    pull_number = pull_request['number']
+
+    request_uri = f'https://api.github.com/repos/{operation.repository_owner}/{operation.repository_name}' \
+                  f'/pulls/{pull_number}/merge'
+    request_body = {
+        'commit_title': title
+    }
+    pull_request_response = requests.put(request_uri,
+                                         json=request_body,
+                                         headers={'Authorization': f'token {github_token}'})
+    if pull_request_response.status_code == 200:
+        logging.info('Pull request merged')
+    else:
+        logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
+
+
+def merge_pull_requests(operation: OperationConfiguration):
+    logging.info('Merge pull requests')
+
+    pull_requests = list_pull_requests(operation)
+    for pull_request in pull_requests:
+        title = pull_request['title']
+        if title.startswith('[Automation]'):
+            merge_pull_request(operation, pull_request)
+            # wait a few seconds to avoid 409
+            time.sleep(5)
 
 
 def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release,
@@ -324,7 +372,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
 
     logging.info(f'Processing sdk: {sdk.name}')
     releases = []
-    # since there is no ordering from github, just get all releases (exclude draft=True), and hope paging is correct
+    # since there is no ordering from GitHub, just get all releases (exclude draft=True), and hope paging is correct
     for page in itertools.count(start=1):
         request_uri = f'https://api.github.com/repos/{sdk.repository_owner}/{sdk.repository_name}/releases'
         releases_response = requests.get(request_uri,
@@ -384,6 +432,9 @@ def process(command_line: CommandLineConfiguration, aggregated_error: Aggregated
     logging.info('Command line: ' + ' '.join(cmd))
     subprocess.check_call(cmd, cwd=tmp_root_path)
 
+    if command_line.merge_pr:
+        merge_pull_requests(configuration.operation)
+
     for sdk_configuration in configuration.sdks:
         if not command_line.language or command_line.language == sdk_configuration.language:
             process_sdk(configuration.operation, sdk_configuration, aggregated_error)
@@ -411,12 +462,15 @@ def main():
                         help='Process SDK for specific language. Currently supports "java" and "go".')
     parser.add_argument('--persist-data', type=str, required=False, default='false',
                         help='Persist data about release and files to database')
+    parser.add_argument('--merge-pull-request', type=str, required=False, default='false',
+                        help='Merge GitHub pull request before new processing')
     args = parser.parse_args()
 
     github_token = args.github_token
 
     command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.language,
-                                                          args.persist_data.lower() == 'true')
+                                                          args.persist_data.lower() == 'true',
+                                                          args.merge_pull_request.lower() == 'true')
 
     aggregated_error = AggregatedError([])
     process(command_line_configuration, aggregated_error)
