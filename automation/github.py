@@ -29,6 +29,7 @@ class GitHubRepository:
             logging.info('Pull request created')
         else:
             logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
+            pull_request_response.raise_for_status()
 
     def list_pull_requests(self) -> List[Dict]:
         logging.info(f'List pull requests')

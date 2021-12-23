@@ -193,14 +193,18 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             # logging.info('Command line: ' + ' '.join(cmd))
             subprocess.check_call(cmd, cwd=example_repo_path)
 
-            # create github pull request
-            head = f'{operation.repository_owner}:{branch}'
-            repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
-            repo.create_pull_request(title, head)
+            try:
+                # create github pull request
+                head = f'{operation.repository_owner}:{branch}'
+                repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
+                repo.create_pull_request(title, head)
 
-            if operation.persist_data:
-                # commit changes to database
-                commit_database(release_name, sdk.language, release, changed_files)
+                if operation.persist_data:
+                    # commit changes to database
+                    commit_database(release_name, sdk.language, release, changed_files)
+            except Exception as e:
+                aggregated_error.errors.append(e)
+
     except subprocess.CalledProcessError as e:
         logging.error(f'Call error: {e}')
         aggregated_error.errors.append(e)
