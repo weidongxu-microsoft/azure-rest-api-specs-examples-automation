@@ -158,7 +158,7 @@ def list_pull_requests(operation: OperationConfiguration) -> List[Dict]:
                   f'?per_page=100'
     pull_request_response = requests.get(request_uri,
                                          headers={'Authorization': f'token {github_token}'})
-    if pull_request_response.status_code == 201:
+    if pull_request_response.status_code == 200:
         logging.info('Pull request created')
         return pull_request_response.json()
     else:
@@ -409,6 +409,9 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
 def process(command_line: CommandLineConfiguration, aggregated_error: AggregatedError):
     configuration = load_configuration(command_line)
 
+    if command_line.merge_pr:
+        merge_pull_requests(configuration.operation)
+
     # checkout azure-rest-api-specs repo
     tmp_root_path = path.join(root_path, tmp_folder)
     os.makedirs(tmp_root_path, exist_ok=True)
@@ -431,9 +434,6 @@ def process(command_line: CommandLineConfiguration, aggregated_error: Aggregated
     logging.info(f'Checking out repository: {automation_repo}, branch {database_branch}')
     logging.info('Command line: ' + ' '.join(cmd))
     subprocess.check_call(cmd, cwd=tmp_root_path)
-
-    if command_line.merge_pr:
-        merge_pull_requests(configuration.operation)
 
     for sdk_configuration in configuration.sdks:
         if not command_line.language or command_line.language == sdk_configuration.language:
