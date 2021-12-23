@@ -5,15 +5,15 @@ import sys
 import subprocess
 import tempfile
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 import json
-import re
 import argparse
 import logging
-import dataclasses
-from typing import List, Dict
 import itertools
 import requests
+
+from models import *
+from github import GitHubRepository
 try:
     from database import Database
 except ImportError:
@@ -32,80 +32,6 @@ tmp_sdk_folder: str = 'sdk'
 automation_repo = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
 database_branch = 'database'
 database_folder = 'db'
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class ReleaseTagConfiguration:
-    regex_match: str
-    package_regex_group: str
-    version_regex_group: str
-
-
-@dataclasses.dataclass(eq=True)
-class Script:
-    run: str
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class SdkConfiguration:
-    name: str
-    language: str
-    repository: str
-    release_tag: ReleaseTagConfiguration
-    script: Script
-
-    @property
-    def repository_owner(self) -> str:
-        return re.match(r'https://github.com/([^/:]+)/.*', self.repository).group(1)
-
-    @property
-    def repository_name(self) -> str:
-        return re.match(r'https://github.com/[^/:]+/(.*)', self.repository).group(1)
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class OperationConfiguration:
-    sdk_examples_repository: str
-    build_id: str
-    persist_data: bool
-    date_start: datetime
-    date_end: datetime
-
-    @property
-    def repository_owner(self) -> str:
-        return re.match(r'https://github.com/([^/:]+)/.*', self.sdk_examples_repository).group(1)
-
-    @property
-    def repository_name(self) -> str:
-        return re.match(r'https://github.com/[^/:]+/(.*)', self.sdk_examples_repository).group(1)
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class Configuration:
-    operation: OperationConfiguration
-    sdks: List[SdkConfiguration]
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class CommandLineConfiguration:
-    build_id: str
-    release_in_days: int
-    language: str
-    persist_data: bool
-    merge_pr: bool
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class Release:
-    tag: str
-    package: str
-    version: str
-    date: datetime
-
-
-@dataclasses.dataclass(eq=True, frozen=True)
-class AggregatedError:
-    errors: List[Exception]
 
 
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
@@ -133,67 +59,16 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
     return Configuration(operation_configuration, sdk_configurations)
 
 
-def create_pull_request(operation: OperationConfiguration, title: str, head: str):
-    logging.info(f'Create pull request: {head}')
-
-    request_uri = f'https://api.github.com/repos/{operation.repository_owner}/{operation.repository_name}/pulls'
-    request_body = {
-        'title': title,
-        'head': head,
-        'base': 'main'
-    }
-    pull_request_response = requests.post(request_uri,
-                                          json=request_body,
-                                          headers={'Authorization': f'token {github_token}'})
-    if pull_request_response.status_code == 201:
-        logging.info('Pull request created')
-    else:
-        logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
-
-
-def list_pull_requests(operation: OperationConfiguration) -> List[Dict]:
-    logging.info(f'List pull requests')
-
-    request_uri = f'https://api.github.com/repos/{operation.repository_owner}/{operation.repository_name}/pulls' \
-                  f'?per_page=100'
-    pull_request_response = requests.get(request_uri,
-                                         headers={'Authorization': f'token {github_token}'})
-    if pull_request_response.status_code == 200:
-        logging.info('Pull request created')
-        return pull_request_response.json()
-    else:
-        logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
-        return []
-
-
-def merge_pull_request(operation: OperationConfiguration, pull_request: Dict):
-    title = pull_request['title']
-    logging.info(f'Merge pull request: {title}')
-
-    pull_number = pull_request['number']
-
-    request_uri = f'https://api.github.com/repos/{operation.repository_owner}/{operation.repository_name}' \
-                  f'/pulls/{pull_number}/merge'
-    request_body = {
-        'commit_title': title
-    }
-    pull_request_response = requests.put(request_uri,
-                                         json=request_body,
-                                         headers={'Authorization': f'token {github_token}'})
-    if pull_request_response.status_code == 200:
-        logging.info('Pull request merged')
-    else:
-        logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
-
-
 def merge_pull_requests(operation: OperationConfiguration):
     logging.info('Merge pull requests')
 
-    pull_requests = list_pull_requests(operation)
+    repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
+
+    pull_requests = repo.list_pull_requests()
     for pull_request in pull_requests:
         title = pull_request['title']
         if title.startswith('[Automation]'):
-            merge_pull_request(operation, pull_request)
+            repo.merge_pull_request(pull_request)
             # wait a few seconds to avoid 409
             time.sleep(5)
 
@@ -320,7 +195,8 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
             # create github pull request
             head = f'{operation.repository_owner}:{branch}'
-            create_pull_request(operation, title, head)
+            repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
+            repo.create_pull_request(title, head)
 
             if operation.persist_data:
                 # commit changes to database
