@@ -1,9 +1,10 @@
 import requests
 import logging
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 class GitHubRepository:
+    api_host: str = 'https://api.github.com'
     owner: str
     name: str
     token: str
@@ -13,10 +14,10 @@ class GitHubRepository:
         self.name = name
         self.token = token
 
-    def create_pull_request(self, title: str, head: str):
+    def create_pull_request(self, title: str, head: str) -> int:
         logging.info(f'Create pull request: {head}')
 
-        request_uri = f'https://api.github.com/repos/{self.owner}/{self.name}/pulls'
+        request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls'
         request_body = {
             'title': title,
             'head': head,
@@ -27,14 +28,15 @@ class GitHubRepository:
                                               headers={'Authorization': f'token {self.token}'})
         if pull_request_response.status_code == 201:
             logging.info('Pull request created')
+            return pull_request_response.json()['number']
         else:
             logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
             pull_request_response.raise_for_status()
 
-    def list_pull_requests(self) -> List[Dict]:
+    def list_pull_requests(self) -> List[Dict[str, Any]]:
         logging.info(f'List pull requests')
 
-        request_uri = f'https://api.github.com/repos/{self.owner}/{self.name}/pulls?per_page=100'
+        request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls?per_page=100'
         pull_request_response = requests.get(request_uri,
                                              headers={'Authorization': f'token {self.token}'})
         if pull_request_response.status_code == 200:
@@ -48,9 +50,9 @@ class GitHubRepository:
         title = pull_request['title']
         logging.info(f'Merge pull request: {title}')
 
-        pull_number = pull_request['number']
+        pull_number = int(pull_request['number'])
 
-        request_uri = f'https://api.github.com/repos/{self.owner}/{self.name}/pulls/{pull_number}/merge'
+        request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls/{pull_number}/merge'
         request_body = {
             'commit_title': title,
             'merge_method': 'squash'
@@ -62,3 +64,14 @@ class GitHubRepository:
             logging.info('Pull request merged')
         else:
             logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
+
+    def list_releases(self, per_page: int, page: int = 1) -> List[Dict[str, Any]]:
+        request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/releases'
+        releases_response = requests.get(request_uri,
+                                         params={'per_page': per_page, 'page': page},
+                                         headers={'Authorization': f'token {self.token}'})
+        if releases_response.status_code == 200:
+            return releases_response.json()
+        else:
+            logging.error(f'Request failed: {releases_response.status_code}\n{releases_response.json()}')
+            releases_response.raise_for_status()

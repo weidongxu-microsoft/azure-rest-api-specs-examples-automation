@@ -74,7 +74,7 @@ def merge_pull_requests(operation: OperationConfiguration):
 
 
 def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release,
-                    aggregated_error: AggregatedError):
+                    report: Report):
     # process per release
 
     logging.info(f'Processing release: {release.tag}')
@@ -144,7 +144,8 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 succeeded = ('succeeded' == output['status'])
 
         if not succeeded:
-            aggregated_error.errors.append(RuntimeError(f'Worker failed for release tag: {release.tag}'))
+            report.statuses[release.tag] = 'failed at worker'
+            report.aggregated_error.errors.append(RuntimeError(f'Worker failed for release tag: {release.tag}'))
             return
 
         # commit and create pull request
@@ -152,8 +153,10 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         cmd = ['git', 'status', '--porcelain']
         logging.info('Command line: ' + ' '.join(cmd))
         output = subprocess.check_output(cmd, cwd=example_repo_path)
-        if len(output) == 0:
+        count_changed = len(output)
+        if count_changed == 0:
             logging.info(f'No change to repository: {example_repo_path}')
+            report.statuses[release.tag] = 'succeeded, no change'
         else:
             output_str = str(output, 'utf-8')
             logging.info(f'git status:\n{output_str}')
@@ -197,17 +200,21 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 # create github pull request
                 head = f'{operation.repository_owner}:{branch}'
                 repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
-                repo.create_pull_request(title, head)
+                pull_number = repo.create_pull_request(title, head)
 
                 if operation.persist_data:
                     # commit changes to database
                     commit_database(release_name, sdk.language, release, changed_files)
+
+                report.statuses[release.tag] = f'succeeded, {count_changed} files changed, pull number {pull_number}'
             except Exception as e:
-                aggregated_error.errors.append(e)
+                report.statuses[release.tag] = 'failed to create pull request'
+                report.aggregated_error.errors.append(e)
 
     except subprocess.CalledProcessError as e:
         logging.error(f'Call error: {e}')
-        aggregated_error.errors.append(e)
+        report.statuses[release.tag] = 'failed to invoke git'
+        report.aggregated_error.errors.append(e)
     finally:
         if clean_tmp_dir:
             shutil.rmtree(tmp_path, ignore_errors=True)
@@ -247,22 +254,21 @@ def commit_database(release_name: str, language: str, release: Release, changed_
         subprocess.check_call(cmd, cwd=database_path)
 
 
-def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggregated_error: AggregatedError):
+def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report: Report):
     # process for sdk
 
     logging.info(f'Processing sdk: {sdk.name}')
+    count = 0
     releases = []
+    repo = GitHubRepository(sdk.repository_owner, sdk.repository_name, github_token)
     # since there is no ordering from GitHub, just get all releases (exclude draft=True), and hope paging is correct
     for page in itertools.count(start=1):
-        request_uri = f'https://api.github.com/repos/{sdk.repository_owner}/{sdk.repository_name}/releases'
-        releases_response = requests.get(request_uri,
-                                         params={'per_page': 100, 'page': page},
-                                         headers={'Authorization': f'token {github_token}'})
-        if releases_response.status_code == 200:
-            releases_response_json = releases_response.json()
+        try:
+            releases_response_json = repo.list_releases(100, page)
             if len(releases_response_json) == 0:
                 # no more result, we are done
                 break
+            count += len(releases_response_json)
             for release in releases_response_json:
                 if not release['draft']:
                     published_at = datetime.fromisoformat(release['published_at'].replace('Z', '+00:00'))
@@ -274,19 +280,16 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
                             release = Release(release_tag, package, version, published_at)
                             releases.append(release)
                             logging.info(f'Found release tag: {release.tag}')
-        else:
-            logging.error(f'Request failed: {releases_response.status_code}\n{releases_response.json()}')
-            try:
-                releases_response.raise_for_status()
-            except Exception as e:
-                aggregated_error.errors.append(e)
+        except Exception as e:
+            report.aggregated_error.errors.append(e)
             break
+    logging.info(f'Count of all releases: {count}')
 
     for release in releases:
-        process_release(operation, sdk, release, aggregated_error)
+        process_release(operation, sdk, release, report)
 
 
-def process(command_line: CommandLineConfiguration, aggregated_error: AggregatedError):
+def process(command_line: CommandLineConfiguration, report: Report):
     configuration = load_configuration(command_line)
 
     if command_line.merge_pr:
@@ -317,7 +320,7 @@ def process(command_line: CommandLineConfiguration, aggregated_error: Aggregated
 
     for sdk_configuration in configuration.sdks:
         if not command_line.language or command_line.language == sdk_configuration.language:
-            process_sdk(configuration.operation, sdk_configuration, aggregated_error)
+            process_sdk(configuration.operation, sdk_configuration, report)
 
 
 def main():
@@ -352,11 +355,16 @@ def main():
                                                           args.persist_data.lower() == 'true',
                                                           args.merge_pull_request.lower() == 'true')
 
-    aggregated_error = AggregatedError([])
-    process(command_line_configuration, aggregated_error)
+    report = Report({}, AggregatedError([]))
+    process(command_line_configuration, report)
 
-    if aggregated_error.errors:
-        raise RuntimeError(aggregated_error.errors)
+    if report.statuses:
+        statuses_str = 'Statuses:'
+        for tag, status in report.statuses.items():
+            statuses_str += f'\n{tag}: {status}'
+        logging.info(statuses_str)
+    if report.aggregated_error.errors:
+        raise RuntimeError(report.aggregated_error.errors)
 
 
 if __name__ == '__main__':

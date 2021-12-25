@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -76,3 +76,9 @@ class Release:
 @dataclasses.dataclass(eq=True, frozen=True)
 class AggregatedError:
     errors: List[Exception]
+
+
+@dataclasses.dataclass(eq=True, frozen=True)
+class Report:
+    statuses: Dict[str, str]
+    aggregated_error: AggregatedError
