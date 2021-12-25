@@ -354,6 +354,7 @@ def main():
     report = Report({}, AggregatedError([]))
     process(command_line_configuration, report)
 
+    logging.info(f'Statuses:\n{report.statuses}')
     if report.aggregated_error.errors:
         raise RuntimeError(report.aggregated_error.errors)
 

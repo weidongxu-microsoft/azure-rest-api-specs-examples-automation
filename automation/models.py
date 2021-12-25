@@ -80,5 +80,5 @@ class AggregatedError:
 
 @dataclasses.dataclass(eq=True, frozen=True)
 class Report:
-    statuses: Dict[str]
+    statuses: Dict[str, str]
     aggregated_error: AggregatedError
