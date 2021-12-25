@@ -257,6 +257,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
     # process for sdk
 
     logging.info(f'Processing sdk: {sdk.name}')
+    count = 0
     releases = []
     repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
     # since there is no ordering from GitHub, just get all releases (exclude draft=True), and hope paging is correct
@@ -266,6 +267,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
             if len(releases_response_json) == 0:
                 # no more result, we are done
                 break
+            count += len(releases_response_json)
             for release in releases_response_json:
                 if not release['draft']:
                     published_at = datetime.fromisoformat(release['published_at'].replace('Z', '+00:00'))
@@ -280,6 +282,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
         except Exception as e:
             report.aggregated_error.errors.append(e)
             break
+    logging.info(f'Count of all releases: {count}')
 
     for release in releases:
         process_release(operation, sdk, release, report)
