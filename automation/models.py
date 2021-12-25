@@ -76,3 +76,8 @@ class Release:
 @dataclasses.dataclass(eq=True, frozen=True)
 class AggregatedError:
     errors: List[Exception]
+
+
+@dataclasses.dataclass(eq=True, frozen=True)
+class Report:
+    aggregated_error: AggregatedError

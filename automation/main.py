@@ -74,7 +74,7 @@ def merge_pull_requests(operation: OperationConfiguration):
 
 
 def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release,
-                    aggregated_error: AggregatedError):
+                    report: Report):
     # process per release
 
     logging.info(f'Processing release: {release.tag}')
@@ -144,7 +144,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 succeeded = ('succeeded' == output['status'])
 
         if not succeeded:
-            aggregated_error.errors.append(RuntimeError(f'Worker failed for release tag: {release.tag}'))
+            report.aggregated_error.errors.append(RuntimeError(f'Worker failed for release tag: {release.tag}'))
             return
 
         # commit and create pull request
@@ -203,11 +203,11 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                     # commit changes to database
                     commit_database(release_name, sdk.language, release, changed_files)
             except Exception as e:
-                aggregated_error.errors.append(e)
+                report.aggregated_error.errors.append(e)
 
     except subprocess.CalledProcessError as e:
         logging.error(f'Call error: {e}')
-        aggregated_error.errors.append(e)
+        report.aggregated_error.errors.append(e)
     finally:
         if clean_tmp_dir:
             shutil.rmtree(tmp_path, ignore_errors=True)
@@ -247,7 +247,7 @@ def commit_database(release_name: str, language: str, release: Release, changed_
         subprocess.check_call(cmd, cwd=database_path)
 
 
-def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggregated_error: AggregatedError):
+def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report: Report):
     # process for sdk
 
     logging.info(f'Processing sdk: {sdk.name}')
@@ -272,14 +272,14 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
                             releases.append(release)
                             logging.info(f'Found release tag: {release.tag}')
         except Exception as e:
-            aggregated_error.errors.append(e)
+            report.aggregated_error.errors.append(e)
             break
 
     for release in releases:
-        process_release(operation, sdk, release, aggregated_error)
+        process_release(operation, sdk, release, report)
 
 
-def process(command_line: CommandLineConfiguration, aggregated_error: AggregatedError):
+def process(command_line: CommandLineConfiguration, report: Report):
     configuration = load_configuration(command_line)
 
     if command_line.merge_pr:
@@ -310,7 +310,7 @@ def process(command_line: CommandLineConfiguration, aggregated_error: Aggregated
 
     for sdk_configuration in configuration.sdks:
         if not command_line.language or command_line.language == sdk_configuration.language:
-            process_sdk(configuration.operation, sdk_configuration, aggregated_error)
+            process_sdk(configuration.operation, sdk_configuration, report)
 
 
 def main():
@@ -345,11 +345,11 @@ def main():
                                                           args.persist_data.lower() == 'true',
                                                           args.merge_pull_request.lower() == 'true')
 
-    aggregated_error = AggregatedError([])
-    process(command_line_configuration, aggregated_error)
+    report = Report(AggregatedError([]))
+    process(command_line_configuration, report)
 
-    if aggregated_error.errors:
-        raise RuntimeError(aggregated_error.errors)
+    if report.aggregated_error.errors:
+        raise RuntimeError(report.aggregated_error.errors)
 
 
 if __name__ == '__main__':
