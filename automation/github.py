@@ -4,7 +4,7 @@ from typing import List, Dict
 
 
 class GitHubRepository:
-    api_host: str = '{self.api_host}'
+    api_host: str = 'https://api.github.com'
     owner: str
     name: str
     token: str
