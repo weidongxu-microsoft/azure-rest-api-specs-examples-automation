@@ -252,14 +252,11 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
 
     logging.info(f'Processing sdk: {sdk.name}')
     releases = []
+    repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
     # since there is no ordering from GitHub, just get all releases (exclude draft=True), and hope paging is correct
     for page in itertools.count(start=1):
-        request_uri = f'https://api.github.com/repos/{sdk.repository_owner}/{sdk.repository_name}/releases'
-        releases_response = requests.get(request_uri,
-                                         params={'per_page': 100, 'page': page},
-                                         headers={'Authorization': f'token {github_token}'})
-        if releases_response.status_code == 200:
-            releases_response_json = releases_response.json()
+        try:
+            releases_response_json = repo.list_releases(page, 100)
             if len(releases_response_json) == 0:
                 # no more result, we are done
                 break
@@ -274,12 +271,8 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, aggreg
                             release = Release(release_tag, package, version, published_at)
                             releases.append(release)
                             logging.info(f'Found release tag: {release.tag}')
-        else:
-            logging.error(f'Request failed: {releases_response.status_code}\n{releases_response.json()}')
-            try:
-                releases_response.raise_for_status()
-            except Exception as e:
-                aggregated_error.errors.append(e)
+        except Exception as e:
+            aggregated_error.errors.append(e)
             break
 
     for release in releases:
