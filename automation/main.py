@@ -259,11 +259,11 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
     logging.info(f'Processing sdk: {sdk.name}')
     count = 0
     releases = []
-    repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
+    repo = GitHubRepository(sdk.repository_owner, sdk.repository_name, github_token)
     # since there is no ordering from GitHub, just get all releases (exclude draft=True), and hope paging is correct
     for page in itertools.count(start=1):
         try:
-            releases_response_json = repo.list_releases(page, 100)
+            releases_response_json = repo.list_releases(100, page)
             if len(releases_response_json) == 0:
                 # no more result, we are done
                 break

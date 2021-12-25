@@ -1,6 +1,6 @@
 import requests
 import logging
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 class GitHubRepository:
@@ -33,7 +33,7 @@ class GitHubRepository:
             logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
             pull_request_response.raise_for_status()
 
-    def list_pull_requests(self) -> List[Dict]:
+    def list_pull_requests(self) -> List[Dict[str, Any]]:
         logging.info(f'List pull requests')
 
         request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls?per_page=100'
@@ -65,7 +65,7 @@ class GitHubRepository:
         else:
             logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
 
-    def list_releases(self, page: int, per_page: int) -> List[Dict]:
+    def list_releases(self, per_page: int, page: int = 1) -> List[Dict[str, Any]]:
         request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/releases'
         releases_response = requests.get(request_uri,
                                          params={'per_page': per_page, 'page': page},
