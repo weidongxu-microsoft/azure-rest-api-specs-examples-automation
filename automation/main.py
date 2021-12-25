@@ -144,6 +144,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 succeeded = ('succeeded' == output['status'])
 
         if not succeeded:
+            report.statuses[release.tag] = 'failed at worker'
             report.aggregated_error.errors.append(RuntimeError(f'Worker failed for release tag: {release.tag}'))
             return
 
@@ -154,6 +155,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         output = subprocess.check_output(cmd, cwd=example_repo_path)
         if len(output) == 0:
             logging.info(f'No change to repository: {example_repo_path}')
+            report.statuses[release.tag] = 'succeeded, no change'
         else:
             output_str = str(output, 'utf-8')
             logging.info(f'git status:\n{output_str}')
@@ -197,16 +199,20 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 # create github pull request
                 head = f'{operation.repository_owner}:{branch}'
                 repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
-                repo.create_pull_request(title, head)
+                pull_number = repo.create_pull_request(title, head)
 
                 if operation.persist_data:
                     # commit changes to database
                     commit_database(release_name, sdk.language, release, changed_files)
+
+                report.statuses[release.tag] = f'succeeded, pull number {pull_number}'
             except Exception as e:
+                report.statuses[release.tag] = 'failed to create pull request'
                 report.aggregated_error.errors.append(e)
 
     except subprocess.CalledProcessError as e:
         logging.error(f'Call error: {e}')
+        report.statuses[release.tag] = 'failed to invoke git'
         report.aggregated_error.errors.append(e)
     finally:
         if clean_tmp_dir:
@@ -345,7 +351,7 @@ def main():
                                                           args.persist_data.lower() == 'true',
                                                           args.merge_pull_request.lower() == 'true')
 
-    report = Report(AggregatedError([]))
+    report = Report({}, AggregatedError([]))
     process(command_line_configuration, report)
 
     if report.aggregated_error.errors:

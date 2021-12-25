@@ -14,7 +14,7 @@ class GitHubRepository:
         self.name = name
         self.token = token
 
-    def create_pull_request(self, title: str, head: str):
+    def create_pull_request(self, title: str, head: str) -> int:
         logging.info(f'Create pull request: {head}')
 
         request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls'
@@ -28,6 +28,7 @@ class GitHubRepository:
                                               headers={'Authorization': f'token {self.token}'})
         if pull_request_response.status_code == 201:
             logging.info('Pull request created')
+            return pull_request_response.json()['number']
         else:
             logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
             pull_request_response.raise_for_status()
@@ -49,7 +50,7 @@ class GitHubRepository:
         title = pull_request['title']
         logging.info(f'Merge pull request: {title}')
 
-        pull_number = pull_request['number']
+        pull_number = int(pull_request['number'])
 
         request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls/{pull_number}/merge'
         request_body = {
