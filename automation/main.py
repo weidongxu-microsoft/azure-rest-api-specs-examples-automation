@@ -10,7 +10,6 @@ import json
 import argparse
 import logging
 import itertools
-import requests
 
 from models import *
 from github import GitHubRepository

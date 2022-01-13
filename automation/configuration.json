@@ -8,7 +8,7 @@
       "language": "java",
       "repository": "https://github.com/Azure/azure-sdk-for-java",
       "releaseTag": {
-        "regexMatch": "azure-resourcemanager.*_.+",
+        "regexMatch": "^(?!azure-resourcemanager.*_.+-hybrid)azure-resourcemanager.*_.+$",
         "packageRegexGroup": "(.*)_.*",
         "versionRegexGroup": ".*_(.*)"
       },
@@ -21,7 +21,7 @@
       "language": "go",
       "repository": "https://github.com/Azure/azure-sdk-for-go",
       "releaseTag": {
-        "regexMatch": "sdk/resourcemanager/.*",
+        "regexMatch": "^sdk/resourcemanager/.*$",
         "packageRegexGroup": "(.*)/.*",
         "versionRegexGroup": ".*/(.*)"
       },
