@@ -152,8 +152,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         cmd = ['git', 'status', '--porcelain']
         logging.info('Command line: ' + ' '.join(cmd))
         output = subprocess.check_output(cmd, cwd=example_repo_path)
-        count_changed = len(output)
-        if count_changed == 0:
+        if len(output) == 0:
             logging.info(f'No change to repository: {example_repo_path}')
             report.statuses[release.tag] = 'succeeded, no change'
         else:
@@ -205,7 +204,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                     # commit changes to database
                     commit_database(release_name, sdk.language, release, changed_files)
 
-                report.statuses[release.tag] = f'succeeded, {count_changed} files changed, pull number {pull_number}'
+                report.statuses[release.tag] = f'succeeded, {len(changed_files)} files changed, pull number {pull_number}'
             except Exception as e:
                 report.statuses[release.tag] = 'failed to create pull request'
                 report.aggregated_error.errors.append(e)
