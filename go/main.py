@@ -62,6 +62,21 @@ def is_aggregated_go_example(lines: List[str]) -> bool:
     return False
 
 
+def parse_original_file(original_file: str) -> str:
+    if original_file.startswith('https://'):
+        spec_main_segment = 'https://github.com/Azure/azure-rest-api-specs/tree/main/'
+        if original_file.startswith(spec_main_segment):
+            original_file = original_file[len(spec_main_segment):]
+        else:
+            specification_index = original_file.find('specification/')
+            if specification_index != -1:
+                original_file = original_file[specification_index:]
+            else:
+                logging.error(f'Parse relative path from URI {original_file} failed')
+                original_file = None
+    return original_file
+
+
 def get_go_example_method(lines: List[str], start: int) -> GoExampleMethodContent:
     # extract one example method, start from certain line number
 
@@ -74,17 +89,7 @@ def get_go_example_method(lines: List[str], start: int) -> GoExampleMethodConten
         line = lines[index]
         if line.strip().startswith(original_file_key):
             original_file = line.strip()[len(original_file_key):]
-            if original_file.startswith('https://'):
-                spec_main_segment = 'https://github.com/Azure/azure-rest-api-specs/tree/main/'
-                if original_file.startswith(spec_main_segment):
-                    original_file = original_file[len(spec_main_segment)]
-                else:
-                    specification_index = original_file.find('specification/')
-                    if specification_index != -1:
-                        original_file = original_file[specification_index]
-                    else:
-                        logging.error(f'Parse relative path from URI {original_file} failed')
-                        original_file = None
+            original_file = parse_original_file(original_file)
         elif line.startswith('func '):
             # begin of method
             go_example_method.example_relative_path = original_file
