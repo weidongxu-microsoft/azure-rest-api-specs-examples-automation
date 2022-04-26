@@ -22,7 +22,7 @@ jobs:
     steps:
       - task: GoTool@0
         inputs:
-          version: '1.17'
+          version: '1.18'
 
       - script: |
           ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(github-token) --release-in-days=$(RELEASE_IN_DAYS) --language=${LANGUAGE} --persist-data=${PERSIST_DATA} --merge-pull-request=false
