@@ -160,7 +160,7 @@ def process_go_example(filepath: str) -> List[GoExample]:
         aggregated_go_example = break_down_aggregated_go_example(lines)
         for go_example_method in aggregated_go_example.methods:
             if go_example_method.is_valid():
-                logging.info(f'Processing go example: {go_example_method.example_relative_path}')
+                logging.info(f'Processing Go example: {go_example_method.example_relative_path}')
 
                 # re-construct the example class, from example method
                 example_lines = aggregated_go_example.class_opening + go_example_method.content
