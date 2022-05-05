@@ -127,12 +127,12 @@ def format_js(lines: List[str]) -> List[str]:
         if not skip_head:
             # use new class name
             new_lines.append(line)
-
-        # remove comments before "require", which should be empty or comments
-        if line.strip() and not (line.strip().startswith('/*') or line.strip().startswith('*')
-                                 or line.strip().startswith('*/') or line.strip().startswith('//')):
-            new_lines.append(line)
-            skip_head = False
+        else:
+            # remove comments before "require", which should be empty or comments
+            if line.strip() and not (line.strip().startswith('/*') or line.strip().startswith('*')
+                                     or line.strip().startswith('*/') or line.strip().startswith('//')):
+                new_lines.append(line)
+                skip_head = False
 
     return new_lines
 

@@ -123,10 +123,10 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
             # use new class name
             line = line.replace('class ' + old_class_name + ' {', 'class ' + new_class_name + ' {', 1)
             new_lines.append(line)
-
-        # remove package
-        if line.startswith('package '):
-            skip_head = False
+        else:
+            # remove package
+            if line.startswith('package '):
+                skip_head = False
 
     return new_lines
 

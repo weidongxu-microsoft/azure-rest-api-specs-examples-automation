@@ -137,11 +137,11 @@ def format_go(lines: List[str]) -> List[str]:
         if not skip_head:
             # use new class name
             new_lines.append(line)
-
-        # remove package
-        if line.startswith('package'):
-            new_lines.append(line)
-            skip_head = False
+        else:
+            # remove package
+            if line.startswith('package'):
+                new_lines.append(line)
+                skip_head = False
 
     return new_lines
 
