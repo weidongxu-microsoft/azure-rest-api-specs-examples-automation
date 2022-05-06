@@ -176,7 +176,7 @@ def process_java_example_content(lines: List[str], class_name: str) -> List[Java
                 example_lines = format_java(example_lines, old_class_name, new_class_name)
 
                 filename = example_filename.split('.')[0]
-                # use the examples-java folder for Go example
+                # use the examples-java folder for Java example
                 md_dir = (example_dir + '-java') if example_dir.endswith('/examples') \
                     else example_dir.replace('/examples/', '/examples-java/')
 
@@ -203,7 +203,7 @@ def validate_java_examples(release: Release, java_examples: List[JavaExample]) -
 
 
 def generate_markdowns(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]):
-    # generate markdowns from Go examples
+    # generate markdowns from Java examples
 
     for java_example in java_examples:
         md_dir = java_example.target_dir
