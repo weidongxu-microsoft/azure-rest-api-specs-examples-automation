@@ -267,7 +267,7 @@ def main():
                       config['release']['version'],
                       config['release']['package'][len('@azure/arm-'):])
 
-    js_module = '{release.package}@{release.version}'
+    js_module = f'{release.package}@{release.version}'
     sample_version = 'v' + release.version.split('.')[0]
 
     js_examples_relative_path = path.join(get_module_relative_path(release.sdk_name),
