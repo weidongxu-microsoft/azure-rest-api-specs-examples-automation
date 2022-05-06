@@ -8,6 +8,9 @@ import logging
 import dataclasses
 from typing import List
 
+from models import JsExample, JsLintResult
+from lint import JsLint
+
 
 script_path: str = '.'
 tmp_path: str
@@ -38,13 +41,6 @@ class JsExampleMethodContent:
 class AggregatedJsExample:
     methods: List[JsExampleMethodContent]
     class_opening: List[str] = None
-
-
-@dataclasses.dataclass(eq=True)
-class JsExample:
-    target_filename: str
-    target_dir: str
-    content: str
 
 
 def format_markdown(doc_reference: str, lines: List[str]) -> str:
@@ -172,18 +168,16 @@ def process_js_example(filepath: str) -> List[JsExample]:
     return js_examples
 
 
-# def validate_go_examples(go_module: str, go_mod_filepath: str, go_examples: List[GoExample]) -> GoVetResult:
-#     # batch validate Go examples
-#
-#     go_mod = None
-#     if path.isfile(go_mod_filepath):
-#         with open(go_mod_filepath, encoding='utf-8') as f:
-#             go_mod = f.read()
-#
-#     go_vet = GoVet(tmp_path, go_module, go_mod, go_examples)
-#     go_vet_result = go_vet.vet()
-#
-#     return go_vet_result
+def validate_js_examples(js_module: str, package_json_path: str, js_examples: List[JsExample]) -> JsLintResult:
+    # batch validate Js examples
+
+    global script_path
+
+    lint_config_path = path.join(script_path, 'lint', '.eslintrc.json')
+    js_lint = JsLint(tmp_path, js_module, package_json_path, lint_config_path, js_examples)
+    js_lint_result = js_lint.lint()
+
+    return js_lint_result
 
 
 def generate_markdowns(release: Release, sdk_examples_path: str, js_examples: List[JsExample]):
@@ -227,16 +221,15 @@ def create_js_examples(release: Release,
 
     if js_examples:
         logging.info('Validating SDK examples')
-        generate_markdowns(release, sdk_examples_path, js_examples)
-        # go_vet_result = validate_go_examples(go_module, go_mod_filepath, js_examples)
-        #
-        # if go_vet_result.succeeded:
-        #     generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
-        # else:
-        #     logging.error('Validation failed')
-        #
-        # return go_vet_result.succeeded
-        return True
+        package_json_path = path.join(js_examples_path, 'package.json')
+        js_lint_result = validate_js_examples(js_module, package_json_path, js_examples)
+
+        if js_lint_result.succeeded:
+            generate_markdowns(release, sdk_examples_path, js_lint_result.examples)
+        else:
+            logging.error('Validation failed')
+
+        return js_lint_result.succeeded
     else:
         logging.info('SDK examples not found')
         return True
