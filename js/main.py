@@ -79,7 +79,8 @@ def get_js_example_method(lines: List[str], start: int) -> JsExampleMethodConten
             # begin of method
             js_example_method.example_relative_path = original_file
             js_example_method.line_start = index
-        elif '.catch(console.error);' in line:
+        elif '.catch(console.error);' in line \
+                or (index > 0 and line.startswith(');') and 'console.error' in lines[index-1]):
             # end of method
             js_example_method.line_end = index + 1
             break
