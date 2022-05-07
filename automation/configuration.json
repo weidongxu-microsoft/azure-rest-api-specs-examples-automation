@@ -28,6 +28,19 @@
       "script": {
         "run": "go/main.sh"
       }
+    },
+    {
+      "name": "azure-sdk-for-js",
+      "language": "js",
+      "repository": "https://github.com/Azure/azure-sdk-for-js",
+      "releaseTag": {
+        "regexMatch": "^@azure\/arm-.*$",
+        "packageRegexGroup": "(.*)_.*",
+        "versionRegexGroup": ".*_(.*)"
+      },
+      "script": {
+        "run": "js/main.sh"
+      }
     }
   ]
 }

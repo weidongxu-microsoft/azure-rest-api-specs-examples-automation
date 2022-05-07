@@ -2,7 +2,7 @@ import unittest
 from os import path
 
 from validate import GoVet
-from models import GoExample, GoVetResult
+from models import GoExample
 
 
 class TestGoVet(unittest.TestCase):
