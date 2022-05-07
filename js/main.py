@@ -86,17 +86,31 @@ def get_js_example_method(lines: List[str], start: int) -> JsExampleMethodConten
             break
 
     if js_example_method.is_valid():
-        # backtrace to include comments before the method declaration
-        for index in range(js_example_method.line_start - 1, start - 1, -1):
-            line = lines[index]
-            if line.strip().startswith('*') or line.strip().startswith('/*') or line.strip().startswith('*/') \
-                    or line.strip().startswith('//'):
-                js_example_method.line_start = index
-            else:
-                break
-        js_example_method.content = lines[js_example_method.line_start:js_example_method.line_end]
+        backtrace_comments(js_example_method, lines, start)
 
     return js_example_method
+
+
+def backtrace_comments(js_example_method: JsExampleMethodContent, lines: List[str], start: int):
+    # backtrace to include comments before the method declaration
+
+    block_comment = False
+    for index in range(js_example_method.line_start - 1, start - 1, -1):
+        line = lines[index]
+        if block_comment:
+            if line.strip().startswith('/*'):
+                js_example_method.line_start = index
+                block_comment = False
+                break
+        else:
+            if line.strip().startswith('//'):
+                js_example_method.line_start = index
+            elif line.strip().startswith('*/'):
+                js_example_method.line_start = index
+                block_comment = True
+            else:
+                break
+    js_example_method.content = lines[js_example_method.line_start:js_example_method.line_end]
 
 
 def break_down_aggregated_js_example(lines: List[str]) -> AggregatedJsExample:
@@ -125,9 +139,8 @@ def format_js(lines: List[str]) -> List[str]:
             # use new class name
             new_lines.append(line)
         else:
-            # remove comments before "require", which should be empty or comments
-            if line.strip() and not (line.strip().startswith('/*') or line.strip().startswith('*')
-                                     or line.strip().startswith('*/') or line.strip().startswith('//')):
+            # start with require
+            if 'require(' in line:
                 new_lines.append(line)
                 skip_head = False
 
