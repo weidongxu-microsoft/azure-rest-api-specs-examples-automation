@@ -40,6 +40,7 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
     now = datetime.now(timezone.utc)
     operation_configuration = OperationConfiguration(config['sdkExample']['repository'],
                                                      command_line.build_id,
+                                                     command_line.skip_processed,
                                                      command_line.persist_data,
                                                      now - timedelta(days=command_line.release_in_days), now)
 
@@ -218,6 +219,17 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def query_releases_in_database(language: str) -> List[Release]:
+    # query local database on processed releases
+
+    tmp_root_path = path.join(root_path, tmp_folder)
+    database_path = path.join(tmp_root_path, database_folder)
+
+    database_filename = 'examples.db'
+    database = Database(path.join(database_path, database_filename))
+    return database.query_releases(language)
+
+
 def commit_database(release_name: str, language: str, release: Release, changed_files: List[str]):
     # write to local database and commit to repository
 
@@ -283,8 +295,16 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
             break
     logging.info(f'Count of all releases: {count}')
 
+    processed_release_tags = set()
+    if operation.skip_processed:
+        processed_releases = query_releases_in_database(sdk.language)
+        processed_release_tags.update([r.tag for r in processed_releases])
+
     for release in releases:
-        process_release(operation, sdk, release, report)
+        if release.tag in processed_release_tags:
+            logging.info(f'Skip processed tag: {release.tag}')
+        else:
+            process_release(operation, sdk, release, report)
 
 
 def process(command_line: CommandLineConfiguration, report: Report):
@@ -343,6 +363,8 @@ def main():
                         help='Process SDK for specific language. Currently supports "java" and "go".')
     parser.add_argument('--persist-data', type=str, required=False, default='false',
                         help='Persist data about release and files to database')
+    parser.add_argument('--skip-processed', type=str, required=False, default='false',
+                        help='Skip processing SDK releases that already been processed')
     parser.add_argument('--merge-pull-request', type=str, required=False, default='false',
                         help='Merge GitHub pull request before new processing')
     args = parser.parse_args()
@@ -351,6 +373,7 @@ def main():
 
     command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.language,
                                                           args.persist_data.lower() == 'true',
+                                                          args.skip_processed.lower() == 'true',
                                                           args.merge_pull_request.lower() == 'true')
 
     report = Report({}, AggregatedError([]))
