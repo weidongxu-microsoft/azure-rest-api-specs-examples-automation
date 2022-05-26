@@ -43,6 +43,7 @@ class TestDatabase(unittest.TestCase):
         with sqlite3.connect('test.db') as conn:
             script1(conn.cursor())
 
+        # populate db
         database = Database('test.db')
         succeeded = database.new_release(
             'com.azure.resourcemanager:mock-sdk:1.0.0-beta.1',
@@ -59,6 +60,7 @@ class TestDatabase(unittest.TestCase):
             'go', 'release_tag3', 'mock-sdk-go', '0.5.0', datetime.now(), ['file1_go'])
         self.assertTrue(succeeded)
 
+        # query
         releases = database.query_releases('java')
         self.assertEqual(2, len(releases))
 

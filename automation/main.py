@@ -364,7 +364,7 @@ def main():
     parser.add_argument('--persist-data', type=str, required=False, default='false',
                         help='Persist data about release and files to database')
     parser.add_argument('--skip-processed', type=str, required=False, default='false',
-                        help='Skip processing SDK releases that already been processed')
+                        help='Skip SDK releases that already been processed')
     parser.add_argument('--merge-pull-request', type=str, required=False, default='false',
                         help='Merge GitHub pull request before new processing')
     args = parser.parse_args()

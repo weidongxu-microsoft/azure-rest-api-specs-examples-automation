@@ -50,6 +50,8 @@ class Database:
             return False
 
     def query_releases(self, language: str) -> List[Release]:
+        # query processed releases
+
         try:
             releases = []
             with sqlite3.connect(self.database_path) as conn:
