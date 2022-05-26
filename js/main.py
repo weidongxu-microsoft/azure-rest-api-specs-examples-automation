@@ -225,7 +225,7 @@ def create_js_examples(release: Release,
     for root, dirs, files in os.walk(js_examples_path):
         for name in files:
             filepath = path.join(root, name)
-            if path.splitext(filepath)[1] == '.js':
+            if path.splitext(filepath)[1] == '.js' and filepath.endswith('Sample.js'):
                 js_paths.append(filepath)
 
     logging.info(f'Processing SDK examples: {release.package}')
