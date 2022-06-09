@@ -134,11 +134,16 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
 def format_markdown(doc_reference: str, lines: List[str]) -> str:
     # format markdown
 
-    md_lines = [doc_reference + '\n',
-                '\n',
-                '```java\n']
-    md_lines += lines
+    md_lines = [
+        '```java\n'
+    ]
+    md_lines.extend(lines)
     md_lines.append('```\n')
+
+    md_lines.extend([
+        '\n',
+        doc_reference + '\n'
+    ])
     return ''.join(md_lines)
 
 
