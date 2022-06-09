@@ -280,7 +280,9 @@ def main():
                       config['release']['package'],
                       config['release']['version'])
 
-    go_module = f'github.com/Azure/azure-sdk-for-go/{release.package}@{release.version}'
+    go_module_major_suffix = '' if release.version.startswith('0.') or release.version.startswith('1.')\
+        else f'/v{release.version.split(".")[0]}'
+    go_module = f'github.com/Azure/azure-sdk-for-go/{release.package}{go_module_major_suffix}@{release.version}'
 
     go_examples_relative_path = release.package
     go_examples_path = path.join(sdk_path, go_examples_relative_path)
