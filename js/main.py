@@ -203,24 +203,35 @@ def generate_markdowns(release: Release, sdk_examples_path: str, js_examples: Li
     # generate markdowns from Js examples
 
     for js_example in js_examples:
-        md_dir = js_example.target_dir
-        md_filename = js_example.target_filename + '.md'
-
-        # add doc reference to markdown, as guidance for user to configure project and authenticate
         escaped_release_tag = urllib.parse.quote(release.tag, safe='')
         doc_link = f'https://github.com/Azure/azure-sdk-for-js/blob/{escaped_release_tag}/' \
                    f'{get_module_relative_path(release.sdk_name)}/README.md'
-        doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
-                        f'to your project and authenticate.'
-        md_str = format_markdown(doc_reference, js_example.content.splitlines(keepends=True))
 
-        md_dir_path = path.join(sdk_examples_path, md_dir)
-        os.makedirs(md_dir_path, exist_ok=True)
+        write_code_to_file(sdk_examples_path, js_example.target_dir, js_example.target_filename, '.js',
+                           js_example.content, doc_link)
 
-        md_file_path = path.join(md_dir_path, md_filename)
-        with open(md_file_path, 'w', encoding='utf-8') as f:
-            f.write(md_str)
-        logging.info(f'Markdown written to file: {md_file_path}')
+
+def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: str, filename_ext: str,
+                       code_content: str, sdk_url: str):
+    # write code file and metadata file
+
+    code_filename = filename_root + filename_ext
+    metadata_filename = filename_root + '.json'
+
+    metadata_json = {'sdkUrl': sdk_url}
+
+    target_dir_path = path.join(sdk_examples_path, target_dir)
+    os.makedirs(target_dir_path, exist_ok=True)
+
+    code_file_path = path.join(target_dir_path, code_filename)
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(code_content)
+    logging.info(f'Code written to file: {code_file_path}')
+
+    metadata_file_path = path.join(target_dir_path, metadata_filename)
+    with open(metadata_file_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata_json, f)
+    logging.info(f'Metadata written to file: {metadata_file_path}')
 
 
 def create_js_examples(release: Release,

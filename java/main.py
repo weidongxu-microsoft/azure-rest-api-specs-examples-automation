@@ -131,22 +131,6 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
     return new_lines
 
 
-def format_markdown(doc_reference: str, lines: List[str]) -> str:
-    # format markdown
-
-    md_lines = [
-        '```java\n'
-    ]
-    md_lines.extend(lines)
-    md_lines.append('```\n')
-
-    md_lines.extend([
-        '\n',
-        doc_reference + '\n'
-    ])
-    return ''.join(md_lines)
-
-
 def process_java_example(filepath: str) -> List[JavaExample]:
     # process aggregated Java sample to examples
 
@@ -208,27 +192,36 @@ def validate_java_examples(release: Release, java_examples: List[JavaExample]) -
 
 
 def generate_markdowns(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]):
-    # generate markdowns from Java examples
+    # generate code and metadata from Java examples
 
     for java_example in java_examples:
-        md_dir = java_example.target_dir
-        md_filename = java_example.target_filename + '.md'
-
-        # add doc reference to markdown, as guidance for user to configure project and authenticate
         doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
                    f'{release.sdk_name}/{release.package}/README.md'
-        doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
-                        f'to your project and authenticate.'
-        md_str = format_markdown(doc_reference, java_example.content.splitlines(keepends=True))
+        write_code_to_file(sdk_examples_path, java_example.target_dir, java_example.target_filename, '.java',
+                           java_example.content, doc_link)
 
-        # use the examples-java folder for Java example
-        md_dir_path = path.join(sdk_examples_path, md_dir)
-        os.makedirs(md_dir_path, exist_ok=True)
 
-        md_file_path = path.join(md_dir_path, md_filename)
-        with open(md_file_path, 'w', encoding='utf-8') as f:
-            f.write(md_str)
-        logging.info(f'Markdown written to file: {md_file_path}')
+def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: str, filename_ext: str,
+                       code_content: str, sdk_url: str):
+    # write code file and metadata file
+
+    code_filename = filename_root + filename_ext
+    metadata_filename = filename_root + '.json'
+
+    metadata_json = {'sdkUrl': sdk_url}
+
+    target_dir_path = path.join(sdk_examples_path, target_dir)
+    os.makedirs(target_dir_path, exist_ok=True)
+
+    code_file_path = path.join(target_dir_path, code_filename)
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(code_content)
+    logging.info(f'Code written to file: {code_file_path}')
+
+    metadata_file_path = path.join(target_dir_path, metadata_filename)
+    with open(metadata_file_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata_json, f)
+    logging.info(f'Metadata written to file: {metadata_file_path}')
 
 
 def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str) -> bool:
