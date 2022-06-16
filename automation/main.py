@@ -136,12 +136,14 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         # parse output.json
         release_name = release.tag
         succeeded = True
+        files = []
         if path.isfile(output_json_path):
             with open(output_json_path, 'r', encoding='utf-8') as f_in:
                 output = json.load(f_in)
                 logging.info(f'Output JSON from worker: {output}')
                 release_name = output['name']
                 succeeded = ('succeeded' == output['status'])
+                files = output['files']
 
         if not succeeded:
             report.statuses[release.tag] = 'failed at worker'
@@ -203,7 +205,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
                 if operation.persist_data:
                     # commit changes to database
-                    commit_database(release_name, sdk.language, release, changed_files)
+                    commit_database(release_name, sdk.language, release, files)
 
                 report.statuses[release.tag] = f'succeeded, {len(changed_files)} files changed, pull number {pull_number}'
             except Exception as e:
