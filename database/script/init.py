@@ -37,8 +37,8 @@ def init():
     root_path = path.abspath(path.join(script_path, '../..'))
     db_path = path.join(root_path, 'database/examples.db')
 
-    with sqlite3.connect(db_path) as con:
-        cursor = con.cursor()
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
         script1(cursor)
 
 
