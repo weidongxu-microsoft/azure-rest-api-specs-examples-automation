@@ -199,20 +199,22 @@ def validate_js_examples(js_module: str, package_json_path: str, js_examples: Li
     return js_lint_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, js_examples: List[JsExample]):
+def generate_markdowns(release: Release, sdk_examples_path: str, js_examples: List[JsExample]) -> List[str]:
     # generate markdowns from Js examples
 
+    files = []
     for js_example in js_examples:
         escaped_release_tag = urllib.parse.quote(release.tag, safe='')
         doc_link = f'https://github.com/Azure/azure-sdk-for-js/blob/{escaped_release_tag}/' \
                    f'{get_module_relative_path(release.sdk_name)}/README.md'
 
-        write_code_to_file(sdk_examples_path, js_example.target_dir, js_example.target_filename, '.js',
-                           js_example.content, doc_link)
+        files.extend(write_code_to_file(sdk_examples_path, js_example.target_dir, js_example.target_filename, '.js',
+                                        js_example.content, doc_link))
+    return files
 
 
 def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: str, filename_ext: str,
-                       code_content: str, sdk_url: str):
+                       code_content: str, sdk_url: str) -> List[str]:
     # write code file and metadata file
 
     code_filename = filename_root + filename_ext
@@ -233,10 +235,13 @@ def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: s
         json.dump(metadata_json, f)
     logging.info(f'Metadata written to file: {metadata_file_path}')
 
+    return [path.join(target_dir, code_filename),
+            path.join(target_dir, metadata_filename)]
+
 
 def create_js_examples(release: Release,
                        js_module: str,
-                       sdk_examples_path: str, js_examples_path: str) -> bool:
+                       sdk_examples_path: str, js_examples_path: str) -> (bool, List[str]):
     js_paths = []
     for root, dirs, files in os.walk(js_examples_path):
         for name in files:
@@ -249,20 +254,21 @@ def create_js_examples(release: Release,
     for filepath in js_paths:
         js_examples += process_js_example(filepath)
 
+    files = []
     if js_examples:
         logging.info('Validating SDK examples')
         package_json_path = path.join(js_examples_path, 'package.json')
         js_lint_result = validate_js_examples(js_module, package_json_path, js_examples)
 
         if js_lint_result.succeeded:
-            generate_markdowns(release, sdk_examples_path, js_lint_result.examples)
+            files = generate_markdowns(release, sdk_examples_path, js_lint_result.examples)
         else:
             logging.error('Validation failed')
 
-        return js_lint_result.succeeded
+        return js_lint_result.succeeded, files
     else:
         logging.info('SDK examples not found')
-        return True
+        return True, files
 
 
 def get_module_relative_path(sdk_name: str) -> str:
@@ -304,12 +310,13 @@ def main():
                                           'samples', sample_version, 'javascript')
     js_examples_path = path.join(sdk_path, js_examples_relative_path)
 
-    succeeded = create_js_examples(release, js_module, sdk_examples_path, js_examples_path)
+    succeeded, files = create_js_examples(release, js_module, sdk_examples_path, js_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         output = {
             'status': 'succeeded' if succeeded else 'failed',
-            'name': js_module
+            'name': js_module,
+            'files': files
         }
         json.dump(output, f_out, indent=2)
 

@@ -199,19 +199,21 @@ def validate_go_examples(go_module: str, go_mod_filepath: str, go_examples: List
     return go_vet_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, go_examples: List[GoExample]):
+def generate_markdowns(release: Release, sdk_examples_path: str, go_examples: List[GoExample]) -> List[str]:
     # generate markdowns from Go examples
 
+    files = []
     for go_example in go_examples:
         escaped_release_tag = urllib.parse.quote(release.tag, safe='')
         doc_link = f'https://github.com/Azure/azure-sdk-for-go/blob/{escaped_release_tag}/' \
                    f'{release.package}/README.md'
-        write_code_to_file(sdk_examples_path, go_example.target_dir, go_example.target_filename, '.go',
-                           go_example.content, doc_link)
+        files.extend(write_code_to_file(sdk_examples_path, go_example.target_dir, go_example.target_filename, '.go',
+                                        go_example.content, doc_link))
+    return files
 
 
 def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: str, filename_ext: str,
-                       code_content: str, sdk_url: str):
+                       code_content: str, sdk_url: str) -> List[str]:
     # write code file and metadata file
 
     code_filename = filename_root + filename_ext
@@ -232,10 +234,13 @@ def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: s
         json.dump(metadata_json, f)
     logging.info(f'Metadata written to file: {metadata_file_path}')
 
+    return [path.join(target_dir, code_filename),
+            path.join(target_dir, metadata_filename)]
+
 
 def create_go_examples(release: Release,
                        go_module: str, go_mod_filepath: str,
-                       sdk_examples_path: str, go_examples_path: str) -> bool:
+                       sdk_examples_path: str, go_examples_path: str) -> (bool, List[str]):
     go_paths = []
     for root, dirs, files in os.walk(go_examples_path):
         for name in files:
@@ -248,12 +253,13 @@ def create_go_examples(release: Release,
     for filepath in go_paths:
         go_examples += process_go_example(filepath)
 
+    files = []
     if go_examples:
         logging.info('Validating SDK examples')
         go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
 
         if go_vet_result.succeeded:
-            generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
+            files = generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
         else:
             logging.error('Validation failed')
 
@@ -298,12 +304,13 @@ def main():
     go_examples_path = path.join(sdk_path, go_examples_relative_path)
     go_mod_filepath = path.join(sdk_path, release.package, 'go.mod')
 
-    succeeded = create_go_examples(release, go_module, go_mod_filepath, sdk_examples_path, go_examples_path)
+    succeeded, files = create_go_examples(release, go_module, go_mod_filepath, sdk_examples_path, go_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         output = {
             'status': 'succeeded' if succeeded else 'failed',
-            'name': go_module
+            'name': go_module,
+            'files': files
         }
         json.dump(output, f_out, indent=2)
 

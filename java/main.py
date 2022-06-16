@@ -191,18 +191,20 @@ def validate_java_examples(release: Release, java_examples: List[JavaExample]) -
     return java_format_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]):
+def generate_markdowns(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]) -> List[str]:
     # generate code and metadata from Java examples
 
+    files = []
     for java_example in java_examples:
         doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
                    f'{release.sdk_name}/{release.package}/README.md'
-        write_code_to_file(sdk_examples_path, java_example.target_dir, java_example.target_filename, '.java',
-                           java_example.content, doc_link)
+        files.extend(write_code_to_file(sdk_examples_path, java_example.target_dir, java_example.target_filename,
+                                        '.java', java_example.content, doc_link))
+    return files
 
 
 def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: str, filename_ext: str,
-                       code_content: str, sdk_url: str):
+                       code_content: str, sdk_url: str) -> List[str]:
     # write code file and metadata file
 
     code_filename = filename_root + filename_ext
@@ -223,8 +225,11 @@ def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: s
         json.dump(metadata_json, f)
     logging.info(f'Metadata written to file: {metadata_file_path}')
 
+    return [path.join(target_dir, code_filename),
+            path.join(target_dir, metadata_filename)]
 
-def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str) -> bool:
+
+def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str) -> (bool, List[str]):
     logging.info('Preparing tools and thread pool')
 
     logging.info(f'Processing SDK examples: {release.sdk_name}')
@@ -239,19 +244,20 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
     for filepath in java_paths:
         java_examples += process_java_example(filepath)
 
+    files = []
     if java_examples:
         logging.info('Validating SDK examples')
         java_build_result = validate_java_examples(release, java_examples)
 
         if java_build_result.succeeded:
-            generate_markdowns(release, sdk_examples_path, java_build_result.examples)
+            files = generate_markdowns(release, sdk_examples_path, java_build_result.examples)
         else:
             logging.error('Validation failed')
 
-        return java_build_result.succeeded
+        return java_build_result.succeeded, files
     else:
         logging.info('SDK examples not found')
-        return True
+        return True, files
 
 
 def main():
@@ -286,13 +292,14 @@ def main():
     java_examples_relative_path = path.join('sdk', release.sdk_name, release.package, 'src', 'samples')
     java_examples_path = path.join(sdk_path, java_examples_relative_path)
 
-    succeeded = create_java_examples(release, sdk_examples_path, java_examples_path)
+    succeeded, files = create_java_examples(release, sdk_examples_path, java_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         group = 'com.azure.resourcemanager'
         output = {
             'status': 'succeeded' if succeeded else 'failed',
-            'name': f'{group}:{release.package}:{release.version}'
+            'name': f'{group}:{release.package}:{release.version}',
+            'files': files
         }
         json.dump(output, f_out, indent=2)
 
