@@ -233,6 +233,9 @@ def query_releases_in_database(language: str) -> List[Release]:
 def commit_database(release_name: str, language: str, release: Release, changed_files: List[str]):
     # write to local database and commit to repository
 
+    # exclude metadata JSON
+    changed_files = [file for file in changed_files if not file.endswith('.json')]
+
     tmp_root_path = path.join(root_path, tmp_folder)
     database_path = path.join(tmp_root_path, database_folder)
 
