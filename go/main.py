@@ -263,10 +263,10 @@ def create_go_examples(release: Release,
         else:
             logging.error('Validation failed')
 
-        return go_vet_result.succeeded
+        return go_vet_result.succeeded, files
     else:
         logging.info('SDK examples not found')
-        return True
+        return True, files
 
 
 def main():
