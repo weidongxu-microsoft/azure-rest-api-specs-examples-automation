@@ -305,11 +305,16 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
         processed_releases = query_releases_in_database(sdk.language)
         processed_release_tags.update([r.tag for r in processed_releases])
 
+    processed_release_packages = set()
     for release in releases:
         if release.tag in processed_release_tags:
             logging.info(f'Skip processed tag: {release.tag}')
+            processed_release_packages.add(release.package)
+        elif release.package in processed_release_packages:
+            logging.info(f'Skip processed package: {release.tag}')
         else:
             process_release(operation, sdk, release, report)
+            processed_release_packages.add(release.package)
 
 
 def process(command_line: CommandLineConfiguration, report: Report):
