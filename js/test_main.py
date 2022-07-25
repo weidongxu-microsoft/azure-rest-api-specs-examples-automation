@@ -1,5 +1,5 @@
 import unittest
-from main import get_js_example_method, get_sample_version
+from main import get_js_example_method, get_sample_version, get_module_relative_path
 
 
 class TestMain(unittest.TestCase):
@@ -50,3 +50,10 @@ managersUploadRegistrationCertificate().catch(console.error);
         js_example_method = get_js_example_method(lines, 0)
         self.assertEqual(3, js_example_method.line_start)
         self.assertIsNotNone(js_example_method.line_end)
+
+    @unittest.skip
+    def test_get_module_relative_path(self):
+        sdk_path = 'c:/github/azure-sdk-for-js'
+        sdk_name = 'mysql-flexible'
+        module_relative_path = get_module_relative_path(sdk_name, sdk_path)
+        self.assertEqual('sdk/mysql/azure-mysql-flexible', module_relative_path)

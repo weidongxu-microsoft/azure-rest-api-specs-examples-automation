@@ -2,6 +2,7 @@ import sys
 import urllib.parse
 import os
 from os import path
+import glob
 import json
 import argparse
 import logging
@@ -15,7 +16,9 @@ from lint import JsLint
 script_path: str = '.'
 tmp_path: str
 
-original_file_key = '* x-ms-original-file: '
+original_file_key: str = '* x-ms-original-file: '
+
+module_relative_path: str = ''
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -202,11 +205,13 @@ def validate_js_examples(js_module: str, package_json_path: str, js_examples: Li
 def generate_markdowns(release: Release, sdk_examples_path: str, js_examples: List[JsExample]) -> List[str]:
     # generate markdowns from Js examples
 
+    global module_relative_path
+
     files = []
     for js_example in js_examples:
         escaped_release_tag = urllib.parse.quote(release.tag, safe='')
         doc_link = f'https://github.com/Azure/azure-sdk-for-js/blob/{escaped_release_tag}/' \
-                   f'{get_module_relative_path(release.sdk_name)}/README.md'
+                   f'{module_relative_path}/README.md'
 
         files.extend(write_code_to_file(sdk_examples_path, js_example.target_dir, js_example.target_filename, '.js',
                                         js_example.content, doc_link))
@@ -271,8 +276,17 @@ def create_js_examples(release: Release,
         return True, files
 
 
-def get_module_relative_path(sdk_name: str) -> str:
-    return path.join('sdk', sdk_name, 'arm-' + sdk_name)
+def get_module_relative_path(sdk_name: str, sdk_path: str) -> str:
+    global module_relative_path
+    module_relative_path = path.join('sdk', sdk_name, 'arm-' + sdk_name)
+    if not path.isdir(path.join(sdk_path, module_relative_path)):
+        candidate_sdk_readmes = glob.glob(path.join(sdk_path, f'sdk/*/arm-{sdk_name}'))
+        if len(candidate_sdk_readmes) > 0:
+            candidate_sdk_readmes = [path.relpath(p, sdk_path) for p in candidate_sdk_readmes]
+            logging.info(
+                f'SDK folder f{module_relative_path} not found, use first item of f{candidate_sdk_readmes}')
+            module_relative_path = candidate_sdk_readmes[0]
+    return module_relative_path
 
 
 def get_sample_version(release_version: str) -> str:
@@ -313,7 +327,8 @@ def main():
     js_module = f'{release.package}@{release.version}'
     sample_version = get_sample_version(release.version)
 
-    js_examples_relative_path = path.join(get_module_relative_path(release.sdk_name),
+    module_relative_path_local = get_module_relative_path(release.sdk_name, sdk_path)
+    js_examples_relative_path = path.join(module_relative_path_local,
                                           'samples', sample_version, 'javascript')
     js_examples_path = path.join(sdk_path, js_examples_relative_path)
 
