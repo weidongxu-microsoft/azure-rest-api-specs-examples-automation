@@ -1,8 +1,12 @@
 import unittest
-from main import get_js_example_method
+from main import get_js_example_method, get_sample_version
 
 
 class TestMain(unittest.TestCase):
+
+    def test_get_sample_version(self):
+        self.assertEqual('v3', get_sample_version('3.0.0'))
+        self.assertEqual('v3-beta', get_sample_version('3.0.0-beta.3'))
 
     def test_get_js_example_method(self):
         code = '''const { StorSimpleManagementClient } = require("@azure/arm-storsimple1200series");

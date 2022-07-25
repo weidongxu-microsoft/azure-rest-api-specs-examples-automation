@@ -275,6 +275,13 @@ def get_module_relative_path(sdk_name: str) -> str:
     return path.join('sdk', sdk_name, 'arm-' + sdk_name)
 
 
+def get_sample_version(release_version: str) -> str:
+    version = 'v' + release_version.split('.')[0]
+    if '-beta' in release_version:
+        version += '-beta'
+    return version
+
+
 def main():
     global script_path
     global tmp_path
@@ -304,7 +311,7 @@ def main():
                       config['release']['package'][len('@azure/arm-'):])
 
     js_module = f'{release.package}@{release.version}'
-    sample_version = 'v' + release.version.split('.')[0]
+    sample_version = get_sample_version(release.version)
 
     js_examples_relative_path = path.join(get_module_relative_path(release.sdk_name),
                                           'samples', sample_version, 'javascript')
