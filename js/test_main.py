@@ -1,5 +1,5 @@
 import unittest
-from main import get_js_example_method, get_sample_version, get_module_relative_path
+from main import get_js_example_method, get_sample_version, get_module_relative_path, create_js_examples, Release
 
 
 class TestMain(unittest.TestCase):
@@ -57,3 +57,15 @@ managersUploadRegistrationCertificate().catch(console.error);
         sdk_name = 'mysql-flexible'
         module_relative_path = get_module_relative_path(sdk_name, sdk_path)
         self.assertEqual('sdk/mysql/azure-mysql-flexible', module_relative_path)
+
+    @unittest.skip
+    def test_create_js_examples(self):
+        release = Release('@azure/arm-policyinsights_6.0.0-beta.1',
+                          '@azure/arm-policyinsights',
+                          '6.0.0-beta.1',
+                          'policyinsights')
+        js_module = f'{release.package}@{release.version}'
+        sdk_examples_path = 'c:/github/azure-rest-api-specs-examples'
+        js_examples_path = 'c:/github/azure-sdk-for-js/sdk/policyinsights/arm-policyinsights/samples/v6-beta/javascript'
+        succeeded, files = create_js_examples(release, js_module, sdk_examples_path, js_examples_path)
+        self.assertTrue(succeeded)
