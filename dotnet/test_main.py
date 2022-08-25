@@ -1,5 +1,5 @@
 import unittest
-from main import break_down_aggregated_dotnet_example, AggregatedDotNetExample
+from main import break_down_aggregated_dotnet_example, format_dotnet
 
 
 file_content = '''// Copyright (c) Microsoft Corporation. All rights reserved.
@@ -3742,5 +3742,10 @@ class TestMain(unittest.TestCase):
         lines = file_content.splitlines(keepends=True)
         examples = break_down_aggregated_dotnet_example(lines)
         self.assertIsNotNone(examples.class_opening)
-        for example in examples.methods:
-            self.assertIsNotNone(example.content)
+        for example_method in examples.methods:
+            self.assertIsNotNone(example_method.content)
+
+        for dotnet_example_method in examples.methods:
+            example_lines = examples.class_opening + format_dotnet(dotnet_example_method.content)
+            example_content = ''.join(example_lines)
+            self.assertIsNotNone(example_content)

@@ -86,7 +86,7 @@ def get_dotnet_using_statements(lines: List[str]) -> List[str]:
             lines_using_statements.append(line)
         elif line.startswith('namespace '):
             namespace = line[len('namespace '):].strip()
-            lines_using_statements.append(f'using {namespace};')
+            lines_using_statements.append(f'using {namespace};\n')
             break
     return lines_using_statements
 
@@ -107,15 +107,16 @@ def format_dotnet(lines: List[str]) -> List[str]:
     # format example as DotNet code
 
     base_indent = len(lines[0]) - len(lines[0].lstrip())
-    last_good_indent = base_indent
+    last_good_indent = 0
     new_lines = []
     for line in lines:
         indent = len(line) - len(line.lstrip())
         if indent >= base_indent:
             line = line[base_indent:]
-            last_good_indent = indent
+            last_good_indent = indent - base_indent
         else:
-            line = ' ' * last_good_indent + line
+            if line.strip():
+                line = ' ' * last_good_indent + line
         new_lines.append(line)
 
     return new_lines
