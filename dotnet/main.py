@@ -74,6 +74,8 @@ def get_dotnet_example_method(lines: List[str], start: int) -> DotNetExampleMeth
             dotnet_example_method.line_end = index
             break
 
+    dotnet_example_method.content = lines[dotnet_example_method.line_start:dotnet_example_method.line_end]
+
     return dotnet_example_method
 
 
