@@ -41,6 +41,19 @@
       "script": {
         "run": "js/main.sh"
       }
+    },
+    {
+      "name": "azure-sdk-for-net",
+      "language": "dotnet",
+      "repository": "https://github.com/Azure/azure-sdk-for-net",
+      "releaseTag": {
+        "regexMatch": "^Azure.ResourceManager.*_.+$",
+        "packageRegexGroup": "(.*)_.*",
+        "versionRegexGroup": ".*_(.*)"
+      },
+      "script": {
+        "run": "dotnet/main.sh"
+      }
     }
   ]
 }
