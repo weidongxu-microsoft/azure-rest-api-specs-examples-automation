@@ -45,7 +45,7 @@
     {
       "name": "azure-sdk-for-net",
       "language": "dotnet",
-      "repository": "https://github.com/weidongxu-microsoft/azure-sdk-for-net",
+      "repository": "https://github.com/Azure/azure-sdk-for-net",
       "releaseTag": {
         "regexMatch": "^Azure.ResourceManager.*_.+$",
         "packageRegexGroup": "(.*)_.*",
