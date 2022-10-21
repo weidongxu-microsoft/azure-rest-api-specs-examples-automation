@@ -156,7 +156,7 @@ def process_dotnet_example(filepath: str) -> List[DotNetExample]:
 
 
 def generate_examples(release: Release, sdk_examples_path: str, dotnet_examples: List[DotNetExample]) -> List[str]:
-    # generate examples from DotNet examples
+    # generate code and metadata from DotNet examples
 
     global module_relative_path
 

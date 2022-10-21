@@ -50,7 +50,7 @@ def parse_python_example(lines: List[str]) -> Optional[PythonExample]:
 
         first_line_index = 0
         for index, line in enumerate(lines):
-            if not line.strip() and not line.strip().startswith('# '):
+            if line.strip() and not line.strip().startswith('# '):
                 first_line_index = index
                 break
 
@@ -79,7 +79,7 @@ def process_python_example(filepath: str) -> List[PythonExample]:
 
 
 def generate_examples(release: Release, sdk_examples_path: str, python_examples: List[PythonExample]) -> List[str]:
-    # generate examples from Python examples
+    # generate code and metadata from Python examples
 
     global module_relative_path
 

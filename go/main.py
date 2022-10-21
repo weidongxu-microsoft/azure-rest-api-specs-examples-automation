@@ -184,7 +184,7 @@ def validate_go_examples(go_module: str, go_mod_filepath: str, go_examples: List
 
 
 def generate_examples(release: Release, sdk_examples_path: str, go_examples: List[GoExample]) -> List[str]:
-    # generate examples from Go examples
+    # generate code and metadata from Go examples
 
     files = []
     for go_example in go_examples:

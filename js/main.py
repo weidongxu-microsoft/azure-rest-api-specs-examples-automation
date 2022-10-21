@@ -187,7 +187,7 @@ def validate_js_examples(js_module: str, package_json_path: str, js_examples: Li
 
 
 def generate_examples(release: Release, sdk_examples_path: str, js_examples: List[JsExample]) -> List[str]:
-    # generate examples from Js examples
+    # generate code and metadata from Js examples
 
     global module_relative_path
 
