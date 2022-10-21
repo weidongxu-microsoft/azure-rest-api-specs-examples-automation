@@ -223,12 +223,14 @@ def create_dotnet_examples(release: Release,
 
 def get_module_relative_path(sdk_name: str, sdk_path: str) -> str:
     global module_relative_path
-    candidate_sdk_readmes = glob.glob(path.join(sdk_path, f'sdk/*/{sdk_name}'))
-    if len(candidate_sdk_readmes) > 0:
-        candidate_sdk_readmes = [path.relpath(p, sdk_path) for p in candidate_sdk_readmes]
+    candidate_sdk_paths = glob.glob(path.join(sdk_path, f'sdk/*/{sdk_name}'))
+    if len(candidate_sdk_paths) > 0:
+        candidate_sdk_paths = [path.relpath(p, sdk_path) for p in candidate_sdk_paths]
         logging.info(
-            f'SDK folder f{module_relative_path} not found, use first item of f{candidate_sdk_readmes}')
-        module_relative_path = candidate_sdk_readmes[0]
+            f'Use first item of {candidate_sdk_paths} for SDK folder')
+        module_relative_path = candidate_sdk_paths[0]
+    else:
+        raise RuntimeError(f'Source folder not found for SDK {sdk_name}')
     return module_relative_path
 
 

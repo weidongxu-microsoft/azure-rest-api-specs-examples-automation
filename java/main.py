@@ -191,7 +191,7 @@ def validate_java_examples(release: Release, java_examples: List[JavaExample]) -
     return java_format_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]) -> List[str]:
+def generate_examples(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]) -> List[str]:
     # generate code and metadata from Java examples
 
     files = []
@@ -250,7 +250,7 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
         java_build_result = validate_java_examples(release, java_examples)
 
         if java_build_result.succeeded:
-            files = generate_markdowns(release, sdk_examples_path, java_build_result.examples)
+            files = generate_examples(release, sdk_examples_path, java_build_result.examples)
         else:
             logging.error('Validation failed')
 

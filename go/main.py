@@ -42,22 +42,6 @@ class AggregatedGoExample:
     class_opening: List[str] = None
 
 
-def format_markdown(doc_reference: str, lines: List[str]) -> str:
-    # format markdown
-
-    md_lines = [
-        '```go\n'
-    ]
-    md_lines.extend(lines)
-    md_lines.append('```\n')
-
-    md_lines.extend([
-        '\n',
-        doc_reference + '\n'
-    ])
-    return ''.join(md_lines)
-
-
 def is_aggregated_go_example(lines: List[str]) -> bool:
     # check metadata to see if the sample file is a candidate for example extraction
 
@@ -199,8 +183,8 @@ def validate_go_examples(go_module: str, go_mod_filepath: str, go_examples: List
     return go_vet_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, go_examples: List[GoExample]) -> List[str]:
-    # generate markdowns from Go examples
+def generate_examples(release: Release, sdk_examples_path: str, go_examples: List[GoExample]) -> List[str]:
+    # generate examples from Go examples
 
     files = []
     for go_example in go_examples:
@@ -259,7 +243,7 @@ def create_go_examples(release: Release,
         go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
 
         if go_vet_result.succeeded:
-            files = generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
+            files = generate_examples(release, sdk_examples_path, go_vet_result.examples)
         else:
             logging.error('Validation failed')
 
