@@ -13,7 +13,7 @@ from typing import List, Optional
 script_path: str = '.'
 tmp_path: str
 
-original_file_key: str = '* x-ms-original-file: '
+original_file_key: str = '# x-ms-original-file: '
 
 module_relative_path: str = ''
 
@@ -23,7 +23,6 @@ class Release:
     tag: str
     package: str
     version: str
-    sdk_name: str
 
 
 @dataclasses.dataclass(eq=True)
@@ -66,7 +65,7 @@ def process_python_example(filepath: str) -> List[PythonExample]:
     # process aggregated Python sample to examples
 
     filename = path.basename(filepath)
-    logging.info(f'Processing Python aggregated sample: {filename}')
+    logging.info(f'Processing Python sample: {filename}')
 
     with open(filepath, encoding='utf-8') as f:
         lines = f.readlines()
