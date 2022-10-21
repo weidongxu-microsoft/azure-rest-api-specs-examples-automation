@@ -270,8 +270,8 @@ def get_module_relative_path(sdk_name: str, sdk_path: str) -> str:
             logging.info(
                 f'SDK folder {module_relative_path} not found, use first item of f{candidate_sdk_readmes}')
             module_relative_path = candidate_sdk_readmes[0]
-    else:
-        raise RuntimeError(f'Source folder not found for SDK arm-{sdk_name}')
+        else:
+            raise RuntimeError(f'Source folder not found for SDK arm-{sdk_name}')
     return module_relative_path
 
 
