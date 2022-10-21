@@ -60,7 +60,7 @@
       "language": "python",
       "repository": "https://github.com/Azure/azure-sdk-for-python",
       "releaseTag": {
-        "regexMatch": "^azure-mgmt-*_.+$",
+        "regexMatch": "^azure-mgmt-.*_.+$",
         "packageRegexGroup": "(.*)_.*",
         "versionRegexGroup": ".*_(.*)"
       },
