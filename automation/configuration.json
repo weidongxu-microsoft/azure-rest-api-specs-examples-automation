@@ -54,6 +54,19 @@
       "script": {
         "run": "dotnet/main.sh"
       }
+    },
+    {
+      "name": "azure-sdk-for-python",
+      "language": "python",
+      "repository": "https://github.com/Azure/azure-sdk-for-python",
+      "releaseTag": {
+        "regexMatch": "^azure-mgmt-.*_.+$",
+        "packageRegexGroup": "(.*)_.*",
+        "versionRegexGroup": ".*_(.*)"
+      },
+      "script": {
+        "run": "python/main.sh"
+      }
     }
   ]
 }

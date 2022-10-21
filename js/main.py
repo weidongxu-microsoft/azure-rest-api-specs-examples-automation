@@ -46,22 +46,6 @@ class AggregatedJsExample:
     class_opening: List[str] = None
 
 
-def format_markdown(doc_reference: str, lines: List[str]) -> str:
-    # format markdown
-
-    md_lines = [
-        '```javascript\n'
-    ]
-    md_lines.extend(lines)
-    md_lines.append('```\n')
-
-    md_lines.extend([
-        '\n',
-        doc_reference + '\n'
-    ])
-    return ''.join(md_lines)
-
-
 def is_aggregated_js_example(lines: List[str]) -> bool:
     # check metadata to see if the sample file is a candidate for example extraction
 
@@ -202,8 +186,8 @@ def validate_js_examples(js_module: str, package_json_path: str, js_examples: Li
     return js_lint_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, js_examples: List[JsExample]) -> List[str]:
-    # generate markdowns from Js examples
+def generate_examples(release: Release, sdk_examples_path: str, js_examples: List[JsExample]) -> List[str]:
+    # generate code and metadata from Js examples
 
     global module_relative_path
 
@@ -266,7 +250,7 @@ def create_js_examples(release: Release,
         js_lint_result = validate_js_examples(js_module, package_json_path, js_examples)
 
         if js_lint_result.succeeded:
-            files = generate_markdowns(release, sdk_examples_path, js_lint_result.examples)
+            files = generate_examples(release, sdk_examples_path, js_lint_result.examples)
         else:
             logging.error('Validation failed')
 
@@ -284,8 +268,10 @@ def get_module_relative_path(sdk_name: str, sdk_path: str) -> str:
         if len(candidate_sdk_readmes) > 0:
             candidate_sdk_readmes = [path.relpath(p, sdk_path) for p in candidate_sdk_readmes]
             logging.info(
-                f'SDK folder f{module_relative_path} not found, use first item of f{candidate_sdk_readmes}')
+                f'SDK folder {module_relative_path} not found, use first item of f{candidate_sdk_readmes}')
             module_relative_path = candidate_sdk_readmes[0]
+    else:
+        raise RuntimeError(f'Source folder not found for SDK arm-{sdk_name}')
     return module_relative_path
 
 
