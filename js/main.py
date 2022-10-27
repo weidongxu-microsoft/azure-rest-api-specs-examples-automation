@@ -268,11 +268,12 @@ def create_js_examples(release: Release,
         return True, files
 
 
-def get_module_relative_path(sdk_name: str, sdk_path: str) -> str:
+def get_module_relative_path(sdk_name: str, package_type: PackageType, sdk_path: str) -> str:
     global module_relative_path
-    module_relative_path = path.join('sdk', sdk_name, 'arm-' + sdk_name)
+    sdk_prefix = 'arm-' if package_type is PackageType.HLC else 'arm-rest-'
+    module_relative_path = path.join('sdk', sdk_name, sdk_prefix + sdk_name)
     if not path.isdir(path.join(sdk_path, module_relative_path)):
-        candidate_sdk_readmes = glob.glob(path.join(sdk_path, f'sdk/*/arm-{sdk_name}'))
+        candidate_sdk_readmes = glob.glob(path.join(sdk_path, f'sdk/*/{sdk_prefix}{sdk_name}'))
         if len(candidate_sdk_readmes) > 0:
             candidate_sdk_readmes = [path.relpath(p, sdk_path) for p in candidate_sdk_readmes]
             logging.info(
@@ -328,7 +329,8 @@ def main():
                       config['release']['package'],
                       config['release']['version'])
 
-    if get_package_type(release) is PackageType.HLC:
+    package_type = get_package_type(release)
+    if package_type is PackageType.HLC:
         sdk_name = release.package[len(PackageType.HLC.value):]
     else:
         sdk_name = release.package[len(PackageType.RLC.value):]
@@ -336,7 +338,7 @@ def main():
     js_module = f'{release.package}@{release.version}'
     sample_version = get_sample_version(release.version)
 
-    module_relative_path_local = get_module_relative_path(sdk_name, sdk_path)
+    module_relative_path_local = get_module_relative_path(sdk_name, package_type, sdk_path)
     js_examples_relative_path = path.join(module_relative_path_local,
                                           'samples', sample_version, 'javascript')
     js_examples_path = path.join(sdk_path, js_examples_relative_path)
