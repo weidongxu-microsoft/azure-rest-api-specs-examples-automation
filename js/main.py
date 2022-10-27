@@ -8,6 +8,7 @@ import argparse
 import logging
 import dataclasses
 from typing import List
+from enum import Enum
 
 from models import JsExample, JsLintResult
 from lint import JsLint
@@ -21,12 +22,16 @@ original_file_key: str = '* x-ms-original-file: '
 module_relative_path: str = ''
 
 
+class PackageType(Enum):
+    HLC = '@azure/arm-'
+    RLC = '@azure-rest/arm-'
+
+
 @dataclasses.dataclass(eq=True, frozen=True)
 class Release:
     tag: str
     package: str
     version: str
-    sdk_name: str
 
 
 @dataclasses.dataclass(eq=True)
@@ -139,7 +144,7 @@ def format_js(lines: List[str]) -> List[str]:
     return new_lines
 
 
-def process_js_example(filepath: str) -> List[JsExample]:
+def process_js_example(filepath: str, package_type: PackageType) -> List[JsExample]:
     # process aggregated Js sample to examples
 
     filename = path.basename(filepath)
@@ -147,6 +152,8 @@ def process_js_example(filepath: str) -> List[JsExample]:
 
     with open(filepath, encoding='utf-8') as f:
         lines = f.readlines()
+
+    example_folder_extension = get_example_folder_extension(package_type)
 
     js_examples = []
     if is_aggregated_js_example(lines):
@@ -165,8 +172,8 @@ def process_js_example(filepath: str) -> List[JsExample]:
 
                 filename = example_filename.split('.')[0]
                 # use the examples-js folder for Js example
-                md_dir = (example_dir + '-js') if example_dir.endswith('/examples') \
-                    else example_dir.replace('/examples/', '/examples-js/')
+                md_dir = (example_dir + '-' + example_folder_extension) if example_dir.endswith('/examples') \
+                    else example_dir.replace('/examples/', f'/examples-{example_folder_extension}/')
 
                 js_example = JsExample(filename, md_dir, ''.join(example_lines))
                 js_examples.append(js_example)
@@ -238,10 +245,11 @@ def create_js_examples(release: Release,
             if path.splitext(filepath)[1] == '.js' and filepath.endswith('Sample.js'):
                 js_paths.append(filepath)
 
+    package_type = get_package_type(release)
     logging.info(f'Processing SDK examples: {release.package}')
     js_examples = []
     for filepath in js_paths:
-        js_examples += process_js_example(filepath)
+        js_examples += process_js_example(filepath, package_type)
 
     files = []
     if js_examples:
@@ -282,6 +290,17 @@ def get_sample_version(release_version: str) -> str:
     return version
 
 
+def get_package_type(release: Release) -> PackageType:
+    if release.package.startswith(PackageType.HLC.value):
+        return PackageType.HLC
+    else:
+        return PackageType.RLC
+
+
+def get_example_folder_extension(package_type: PackageType) -> str:
+    return 'js' if package_type is PackageType.HLC else 'js-rlc'
+
+
 def main():
     global script_path
     global tmp_path
@@ -307,13 +326,17 @@ def main():
 
     release = Release(config['release']['tag'],
                       config['release']['package'],
-                      config['release']['version'],
-                      config['release']['package'][len('@azure/arm-'):])
+                      config['release']['version'])
+
+    if get_package_type(release) is PackageType.HLC:
+        sdk_name = release.package[len(PackageType.HLC.value):]
+    else:
+        sdk_name = release.package[len(PackageType.RLC.value):]
 
     js_module = f'{release.package}@{release.version}'
     sample_version = get_sample_version(release.version)
 
-    module_relative_path_local = get_module_relative_path(release.sdk_name, sdk_path)
+    module_relative_path_local = get_module_relative_path(sdk_name, sdk_path)
     js_examples_relative_path = path.join(module_relative_path_local,
                                           'samples', sample_version, 'javascript')
     js_examples_path = path.join(sdk_path, js_examples_relative_path)
