@@ -34,7 +34,7 @@
       "language": "js",
       "repository": "https://github.com/Azure/azure-sdk-for-js",
       "releaseTag": {
-        "regexMatch": "^@azure\/arm-.*$",
+        "regexMatch": "^@azure\/arm-.*$|^@azure-rest\/arm-.*$",
         "packageRegexGroup": "(.*)_.*",
         "versionRegexGroup": ".*_(.*)"
       },
