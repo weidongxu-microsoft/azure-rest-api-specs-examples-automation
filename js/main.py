@@ -270,17 +270,18 @@ def create_js_examples(release: Release,
 
 def get_module_relative_path(sdk_name: str, package_type: PackageType, sdk_path: str) -> str:
     global module_relative_path
-    sdk_prefix = 'arm-' if package_type is PackageType.HLC else 'arm-rest-'
-    module_relative_path = path.join('sdk', sdk_name, sdk_prefix + sdk_name)
+    sdk_prefix = 'arm-'
+    sdk_suffix = '-rest' if package_type is PackageType.RLC else ''
+    module_relative_path = path.join('sdk', sdk_name, sdk_prefix + sdk_name + sdk_prefix)
     if not path.isdir(path.join(sdk_path, module_relative_path)):
-        candidate_sdk_readmes = glob.glob(path.join(sdk_path, f'sdk/*/{sdk_prefix}{sdk_name}'))
+        candidate_sdk_readmes = glob.glob(path.join(sdk_path, f'sdk/*/{sdk_prefix}{sdk_name}{sdk_suffix}'))
         if len(candidate_sdk_readmes) > 0:
             candidate_sdk_readmes = [path.relpath(p, sdk_path) for p in candidate_sdk_readmes]
             logging.info(
                 f'SDK folder {module_relative_path} not found, use first item of f{candidate_sdk_readmes}')
             module_relative_path = candidate_sdk_readmes[0]
         else:
-            raise RuntimeError(f'Source folder not found for SDK arm-{sdk_name}')
+            raise RuntimeError(f'Source folder not found for SDK {sdk_prefix}{sdk_name}{sdk_suffix}')
     return module_relative_path
 
 
