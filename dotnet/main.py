@@ -9,6 +9,7 @@ import dataclasses
 from typing import List
 
 from models import DotNetExample
+from build import DotNetBuild
 
 
 script_path: str = '.'
@@ -213,9 +214,15 @@ def create_dotnet_examples(release: Release,
 
     files = []
     if dotnet_examples:
-        files = generate_examples(release, sdk_examples_path, dotnet_examples)
+        dotnet_build = DotNetBuild(tmp_path, dotnet_module.split(',')[0], dotnet_module.split(',')[1], dotnet_examples)
+        build_result = dotnet_build.build()
 
-        return True, files
+        if build_result.succeeded:
+            files = generate_examples(release, sdk_examples_path, dotnet_examples)
+        else:
+            logging.error('Build failed')
+
+        return build_result.succeeded, files
     else:
         logging.info('SDK examples not found')
         return True, files
