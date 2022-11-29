@@ -46,19 +46,23 @@ class DotNetBuild:
                     content = f.read()
                     logging.info(f'csproj\n{content}')
 
-                # build per file
+                # build per example
+                filename = 'Program.cs'
+                filepath = path.join(tmp_dir_name, filename)
+                file_no = 0
+                max_file_count = 10  # TODO: for now, only build for first 10 examples
                 for example in self.examples:
-                    filename = 'Program.cs'
-
-                    filepath = path.join(tmp_dir_name, filename)
+                    file_no += 1
+                    if file_no > max_file_count:
+                        break
 
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(example.content)
 
-                    cmd = ['dotnet', 'clean']
+                    cmd = ['dotnet', 'clean', '--nologo', '--verbosity', 'quiet']
                     check_call(cmd, tmp_dir_name)
 
-                    cmd = ['dotnet', 'build']
+                    cmd = ['dotnet', 'build', '--no-restore', '--nologo', '--verbosity', 'quiet']
                     check_call(cmd, tmp_dir_name)
 
             except subprocess.CalledProcessError as error:
