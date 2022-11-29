@@ -50,10 +50,11 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
         release_tag = ReleaseTagConfiguration(sdk_config['releaseTag']['regexMatch'],
                                               sdk_config['releaseTag']['packageRegexGroup'],
                                               sdk_config['releaseTag']['versionRegexGroup'])
+        ignored_packages = sdk_config['ignoredPackages'] if 'ignoredPackages' in sdk_config else []
         sdk_configuration = SdkConfiguration(sdk_config['name'],
                                              sdk_config['language'],
                                              sdk_config['repository'],
-                                             release_tag, script)
+                                             release_tag, script, ignored_packages)
         sdk_configurations.append(sdk_configuration)
 
     return Configuration(operation_configuration, sdk_configurations)
@@ -312,6 +313,8 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
             processed_release_packages.add(release.package)
         elif release.package in processed_release_packages:
             logging.info(f'Skip processed package: {release.tag}')
+        elif release.package in sdk.ignored_packages:
+            logging.info(f'Skip ignored package: {release.tag}')
         else:
             process_release(operation, sdk, release, report)
             processed_release_packages.add(release.package)
