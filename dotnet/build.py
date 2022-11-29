@@ -26,12 +26,11 @@ class DotNetBuild:
 
     def build(self) -> DotNetBuildResult:
         with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir_name:
-            filename_no = 1
             # format and validate go files
             try:
                 logging.info('Initialize project')
                 # project
-                cmd = ['dotnet', 'new', 'console', '--name', 'example']
+                cmd = ['dotnet', 'new', 'console', '--name', 'example', '--output', '.']
                 check_call(cmd, tmp_dir_name)
 
                 cmd = ['dotnet', 'add', 'package', 'Azure.Identity']
