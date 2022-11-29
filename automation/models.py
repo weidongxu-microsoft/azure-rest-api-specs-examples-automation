@@ -41,6 +41,7 @@ class SdkConfiguration:
     repository: str
     release_tag: ReleaseTagConfiguration
     script: Script
+    ignored_packages: List[str]
 
     @property
     def repository_owner(self) -> str:

@@ -1,0 +1,30 @@
+trigger: none
+
+pr: none
+
+schedules:
+- cron: "0 2 * * *"
+  displayName: Daily build
+  branches:
+    include:
+    - main
+  always: true
+
+variables:
+- group: azfluent
+
+jobs:
+  - job: Automation
+    timeoutInMinutes: 360
+
+    pool:
+      vmImage: ubuntu-20.04
+
+    steps:
+      - task: GoTool@0
+        inputs:
+          version: '1.18'
+
+      - script: |
+          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(github-token) --release-in-days=10 --skip-processed=true --persist-data=true --merge-pull-request=false
+        displayName: 'Collect examples'
