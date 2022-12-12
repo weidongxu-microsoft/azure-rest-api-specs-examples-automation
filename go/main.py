@@ -15,7 +15,7 @@ from validate import GoVet
 script_path: str = '.'
 tmp_path: str
 
-original_file_key = '// x-ms-original-file: '
+original_file_key = '// Generated from example definition: '
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -42,17 +42,6 @@ class AggregatedGoExample:
     class_opening: List[str] = None
 
 
-def format_markdown(doc_reference: str, lines: List[str]) -> str:
-    # format markdown
-
-    md_lines = [doc_reference + '\n',
-                '\n',
-                '```go\n']
-    md_lines += lines
-    md_lines.append('```\n')
-    return ''.join(md_lines)
-
-
 def is_aggregated_go_example(lines: List[str]) -> bool:
     # check metadata to see if the sample file is a candidate for example extraction
 
@@ -60,6 +49,21 @@ def is_aggregated_go_example(lines: List[str]) -> bool:
         if line.strip().startswith(original_file_key):
             return True
     return False
+
+
+def parse_original_file(original_file: str) -> str:
+    if original_file.startswith('https://'):
+        spec_main_segment = 'https://github.com/Azure/azure-rest-api-specs/tree/main/'
+        if original_file.startswith(spec_main_segment):
+            original_file = original_file[len(spec_main_segment):]
+        else:
+            specification_index = original_file.find('specification/')
+            if specification_index != -1:
+                original_file = original_file[specification_index:]
+            else:
+                logging.error(f'Parse relative path from URI {original_file} failed')
+                original_file = None
+    return original_file
 
 
 def get_go_example_method(lines: List[str], start: int) -> GoExampleMethodContent:
@@ -74,6 +78,7 @@ def get_go_example_method(lines: List[str], start: int) -> GoExampleMethodConten
         line = lines[index]
         if line.strip().startswith(original_file_key):
             original_file = line.strip()[len(original_file_key):]
+            original_file = parse_original_file(original_file)
         elif line.startswith('func '):
             # begin of method
             go_example_method.example_relative_path = original_file
@@ -119,13 +124,12 @@ def format_go(lines: List[str]) -> List[str]:
     skip_head = True
     for line in lines:
         if not skip_head:
-            # use new class name
             new_lines.append(line)
-
-        # remove package
-        if line.startswith('package'):
-            new_lines.append(line)
-            skip_head = False
+        else:
+            # start with package
+            if line.startswith('package '):
+                new_lines.append(line)
+                skip_head = False
 
     return new_lines
 
@@ -144,7 +148,7 @@ def process_go_example(filepath: str) -> List[GoExample]:
         aggregated_go_example = break_down_aggregated_go_example(lines)
         for go_example_method in aggregated_go_example.methods:
             if go_example_method.is_valid():
-                logging.info(f'Processing go example: {go_example_method.example_relative_path}')
+                logging.info(f'Processing Go example: {go_example_method.example_relative_path}')
 
                 # re-construct the example class, from example method
                 example_lines = aggregated_go_example.class_opening + go_example_method.content
@@ -179,33 +183,48 @@ def validate_go_examples(go_module: str, go_mod_filepath: str, go_examples: List
     return go_vet_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, go_examples: List[GoExample]):
-    # generate markdowns from Go examples
+def generate_examples(release: Release, sdk_examples_path: str, go_examples: List[GoExample]) -> List[str]:
+    # generate code and metadata from Go examples
 
+    files = []
     for go_example in go_examples:
-        md_dir = go_example.target_dir
-        md_filename = go_example.target_filename + '.md'
-
-        # add doc reference to markdown, as guidance for user to configure project and authenticate
         escaped_release_tag = urllib.parse.quote(release.tag, safe='')
         doc_link = f'https://github.com/Azure/azure-sdk-for-go/blob/{escaped_release_tag}/' \
                    f'{release.package}/README.md'
-        doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
-                        f'to your project and authenticate.'
-        md_str = format_markdown(doc_reference, go_example.content.splitlines(keepends=True))
+        files.extend(write_code_to_file(sdk_examples_path, go_example.target_dir, go_example.target_filename, '.go',
+                                        go_example.content, doc_link))
+    return files
 
-        md_dir_path = path.join(sdk_examples_path, md_dir)
-        os.makedirs(md_dir_path, exist_ok=True)
 
-        md_file_path = path.join(md_dir_path, md_filename)
-        with open(md_file_path, 'w', encoding='utf-8') as f:
-            f.write(md_str)
-        logging.info(f'Markdown written to file: {md_file_path}')
+def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: str, filename_ext: str,
+                       code_content: str, sdk_url: str) -> List[str]:
+    # write code file and metadata file
+
+    code_filename = filename_root + filename_ext
+    metadata_filename = filename_root + '.json'
+
+    metadata_json = {'sdkUrl': sdk_url}
+
+    target_dir_path = path.join(sdk_examples_path, target_dir)
+    os.makedirs(target_dir_path, exist_ok=True)
+
+    code_file_path = path.join(target_dir_path, code_filename)
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(code_content)
+    logging.info(f'Code written to file: {code_file_path}')
+
+    metadata_file_path = path.join(target_dir_path, metadata_filename)
+    with open(metadata_file_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata_json, f)
+    logging.info(f'Metadata written to file: {metadata_file_path}')
+
+    return [path.join(target_dir, code_filename),
+            path.join(target_dir, metadata_filename)]
 
 
 def create_go_examples(release: Release,
                        go_module: str, go_mod_filepath: str,
-                       sdk_examples_path: str, go_examples_path: str) -> bool:
+                       sdk_examples_path: str, go_examples_path: str) -> (bool, List[str]):
     go_paths = []
     for root, dirs, files in os.walk(go_examples_path):
         for name in files:
@@ -218,19 +237,20 @@ def create_go_examples(release: Release,
     for filepath in go_paths:
         go_examples += process_go_example(filepath)
 
+    files = []
     if go_examples:
         logging.info('Validating SDK examples')
         go_vet_result = validate_go_examples(go_module, go_mod_filepath, go_examples)
 
         if go_vet_result.succeeded:
-            generate_markdowns(release, sdk_examples_path, go_vet_result.examples)
+            files = generate_examples(release, sdk_examples_path, go_vet_result.examples)
         else:
             logging.error('Validation failed')
 
-        return go_vet_result.succeeded
+        return go_vet_result.succeeded, files
     else:
         logging.info('SDK examples not found')
-        return True
+        return True, files
 
 
 def main():
@@ -260,18 +280,21 @@ def main():
                       config['release']['package'],
                       config['release']['version'])
 
-    go_module = f'github.com/Azure/azure-sdk-for-go/{release.package}@{release.version}'
+    go_module_major_suffix = '' if release.version.startswith('v0.') or release.version.startswith('v1.')\
+        else f'/{release.version.split(".")[0]}'
+    go_module = f'github.com/Azure/azure-sdk-for-go/{release.package}{go_module_major_suffix}@{release.version}'
 
     go_examples_relative_path = release.package
     go_examples_path = path.join(sdk_path, go_examples_relative_path)
     go_mod_filepath = path.join(sdk_path, release.package, 'go.mod')
 
-    succeeded = create_go_examples(release, go_module, go_mod_filepath, sdk_examples_path, go_examples_path)
+    succeeded, files = create_go_examples(release, go_module, go_mod_filepath, sdk_examples_path, go_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         output = {
             'status': 'succeeded' if succeeded else 'failed',
-            'name': go_module
+            'name': go_module,
+            'files': files
         }
         json.dump(output, f_out, indent=2)
 

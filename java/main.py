@@ -123,23 +123,12 @@ def format_java(lines: List[str], old_class_name: str, new_class_name: str) -> L
             # use new class name
             line = line.replace('class ' + old_class_name + ' {', 'class ' + new_class_name + ' {', 1)
             new_lines.append(line)
-
-        # remove package
-        if line.startswith('package '):
-            skip_head = False
+        else:
+            # remove package
+            if line.startswith('package '):
+                skip_head = False
 
     return new_lines
-
-
-def format_markdown(doc_reference: str, lines: List[str]) -> str:
-    # format markdown
-
-    md_lines = [doc_reference + '\n',
-                '\n',
-                '```java\n']
-    md_lines += lines
-    md_lines.append('```\n')
-    return ''.join(md_lines)
 
 
 def process_java_example(filepath: str) -> List[JavaExample]:
@@ -176,7 +165,7 @@ def process_java_example_content(lines: List[str], class_name: str) -> List[Java
                 example_lines = format_java(example_lines, old_class_name, new_class_name)
 
                 filename = example_filename.split('.')[0]
-                # use the examples-java folder for Go example
+                # use the examples-java folder for Java example
                 md_dir = (example_dir + '-java') if example_dir.endswith('/examples') \
                     else example_dir.replace('/examples/', '/examples-java/')
 
@@ -202,31 +191,45 @@ def validate_java_examples(release: Release, java_examples: List[JavaExample]) -
     return java_format_result
 
 
-def generate_markdowns(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]):
-    # generate markdowns from Go examples
+def generate_examples(release: Release, sdk_examples_path: str, java_examples: List[JavaExample]) -> List[str]:
+    # generate code and metadata from Java examples
 
+    files = []
     for java_example in java_examples:
-        md_dir = java_example.target_dir
-        md_filename = java_example.target_filename + '.md'
-
-        # add doc reference to markdown, as guidance for user to configure project and authenticate
         doc_link = f'https://github.com/Azure/azure-sdk-for-java/blob/{release.tag}/sdk/' \
                    f'{release.sdk_name}/{release.package}/README.md'
-        doc_reference = f'Read the [SDK documentation]({doc_link}) on how to add the SDK ' \
-                        f'to your project and authenticate.'
-        md_str = format_markdown(doc_reference, java_example.content.splitlines(keepends=True))
-
-        # use the examples-java folder for Java example
-        md_dir_path = path.join(sdk_examples_path, md_dir)
-        os.makedirs(md_dir_path, exist_ok=True)
-
-        md_file_path = path.join(md_dir_path, md_filename)
-        with open(md_file_path, 'w', encoding='utf-8') as f:
-            f.write(md_str)
-        logging.info(f'Markdown written to file: {md_file_path}')
+        files.extend(write_code_to_file(sdk_examples_path, java_example.target_dir, java_example.target_filename,
+                                        '.java', java_example.content, doc_link))
+    return files
 
 
-def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str) -> bool:
+def write_code_to_file(sdk_examples_path: str, target_dir: str, filename_root: str, filename_ext: str,
+                       code_content: str, sdk_url: str) -> List[str]:
+    # write code file and metadata file
+
+    code_filename = filename_root + filename_ext
+    metadata_filename = filename_root + '.json'
+
+    metadata_json = {'sdkUrl': sdk_url}
+
+    target_dir_path = path.join(sdk_examples_path, target_dir)
+    os.makedirs(target_dir_path, exist_ok=True)
+
+    code_file_path = path.join(target_dir_path, code_filename)
+    with open(code_file_path, 'w', encoding='utf-8') as f:
+        f.write(code_content)
+    logging.info(f'Code written to file: {code_file_path}')
+
+    metadata_file_path = path.join(target_dir_path, metadata_filename)
+    with open(metadata_file_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata_json, f)
+    logging.info(f'Metadata written to file: {metadata_file_path}')
+
+    return [path.join(target_dir, code_filename),
+            path.join(target_dir, metadata_filename)]
+
+
+def create_java_examples(release: Release, sdk_examples_path: str, java_examples_path: str) -> (bool, List[str]):
     logging.info('Preparing tools and thread pool')
 
     logging.info(f'Processing SDK examples: {release.sdk_name}')
@@ -241,19 +244,20 @@ def create_java_examples(release: Release, sdk_examples_path: str, java_examples
     for filepath in java_paths:
         java_examples += process_java_example(filepath)
 
+    files = []
     if java_examples:
         logging.info('Validating SDK examples')
         java_build_result = validate_java_examples(release, java_examples)
 
         if java_build_result.succeeded:
-            generate_markdowns(release, sdk_examples_path, java_build_result.examples)
+            files = generate_examples(release, sdk_examples_path, java_build_result.examples)
         else:
             logging.error('Validation failed')
 
-        return java_build_result.succeeded
+        return java_build_result.succeeded, files
     else:
         logging.info('SDK examples not found')
-        return True
+        return True, files
 
 
 def main():
@@ -288,13 +292,14 @@ def main():
     java_examples_relative_path = path.join('sdk', release.sdk_name, release.package, 'src', 'samples')
     java_examples_path = path.join(sdk_path, java_examples_relative_path)
 
-    succeeded = create_java_examples(release, sdk_examples_path, java_examples_path)
+    succeeded, files = create_java_examples(release, sdk_examples_path, java_examples_path)
 
     with open(output_json_path, 'w', encoding='utf-8') as f_out:
         group = 'com.azure.resourcemanager'
         output = {
             'status': 'succeeded' if succeeded else 'failed',
-            'name': f'{group}:{release.package}:{release.version}'
+            'name': f'{group}:{release.package}:{release.version}',
+            'files': files
         }
         json.dump(output, f_out, indent=2)
 

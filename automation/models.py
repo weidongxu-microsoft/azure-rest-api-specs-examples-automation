@@ -8,6 +8,7 @@ from typing import List, Dict
 class OperationConfiguration:
     sdk_examples_repository: str
     build_id: str
+    skip_processed: bool
     persist_data: bool
     date_start: datetime
     date_end: datetime
@@ -40,6 +41,7 @@ class SdkConfiguration:
     repository: str
     release_tag: ReleaseTagConfiguration
     script: Script
+    ignored_packages: List[str]
 
     @property
     def repository_owner(self) -> str:
@@ -62,6 +64,7 @@ class CommandLineConfiguration:
     release_in_days: int
     language: str
     persist_data: bool
+    skip_processed: bool
     merge_pr: bool
 
 

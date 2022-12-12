@@ -40,6 +40,7 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
     now = datetime.now(timezone.utc)
     operation_configuration = OperationConfiguration(config['sdkExample']['repository'],
                                                      command_line.build_id,
+                                                     command_line.skip_processed,
                                                      command_line.persist_data,
                                                      now - timedelta(days=command_line.release_in_days), now)
 
@@ -49,10 +50,11 @@ def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
         release_tag = ReleaseTagConfiguration(sdk_config['releaseTag']['regexMatch'],
                                               sdk_config['releaseTag']['packageRegexGroup'],
                                               sdk_config['releaseTag']['versionRegexGroup'])
+        ignored_packages = sdk_config['ignoredPackages'] if 'ignoredPackages' in sdk_config else []
         sdk_configuration = SdkConfiguration(sdk_config['name'],
                                              sdk_config['language'],
                                              sdk_config['repository'],
-                                             release_tag, script)
+                                             release_tag, script, ignored_packages)
         sdk_configurations.append(sdk_configuration)
 
     return Configuration(operation_configuration, sdk_configurations)
@@ -135,12 +137,14 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         # parse output.json
         release_name = release.tag
         succeeded = True
+        files = []
         if path.isfile(output_json_path):
             with open(output_json_path, 'r', encoding='utf-8') as f_in:
                 output = json.load(f_in)
                 logging.info(f'Output JSON from worker: {output}')
                 release_name = output['name']
                 succeeded = ('succeeded' == output['status'])
+                files = output['files']
 
         if not succeeded:
             report.statuses[release.tag] = 'failed at worker'
@@ -202,7 +206,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 
                 if operation.persist_data:
                     # commit changes to database
-                    commit_database(release_name, sdk.language, release, changed_files)
+                    commit_database(release_name, sdk.language, release, files)
 
                 report.statuses[release.tag] = f'succeeded, {len(changed_files)} files changed, pull number {pull_number}'
             except Exception as e:
@@ -218,8 +222,22 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
             shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def query_releases_in_database(language: str) -> List[Release]:
+    # query local database on processed releases
+
+    tmp_root_path = path.join(root_path, tmp_folder)
+    database_path = path.join(tmp_root_path, database_folder)
+
+    database_filename = 'examples.db'
+    database = Database(path.join(database_path, database_filename))
+    return database.query_releases(language)
+
+
 def commit_database(release_name: str, language: str, release: Release, changed_files: List[str]):
     # write to local database and commit to repository
+
+    # exclude metadata JSON
+    changed_files = [file for file in changed_files if not file.endswith('.json')]
 
     tmp_root_path = path.join(root_path, tmp_folder)
     database_path = path.join(tmp_root_path, database_folder)
@@ -283,8 +301,23 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
             break
     logging.info(f'Count of all releases: {count}')
 
+    processed_release_tags = set()
+    if operation.skip_processed:
+        processed_releases = query_releases_in_database(sdk.language)
+        processed_release_tags.update([r.tag for r in processed_releases])
+
+    processed_release_packages = set()
     for release in releases:
-        process_release(operation, sdk, release, report)
+        if release.tag in processed_release_tags:
+            logging.info(f'Skip processed tag: {release.tag}')
+            processed_release_packages.add(release.package)
+        elif release.package in processed_release_packages:
+            logging.info(f'Skip processed package: {release.tag}')
+        elif release.package in sdk.ignored_packages:
+            logging.info(f'Skip ignored package: {release.tag}')
+        else:
+            process_release(operation, sdk, release, report)
+            processed_release_packages.add(release.package)
 
 
 def process(command_line: CommandLineConfiguration, report: Report):
@@ -343,6 +376,8 @@ def main():
                         help='Process SDK for specific language. Currently supports "java" and "go".')
     parser.add_argument('--persist-data', type=str, required=False, default='false',
                         help='Persist data about release and files to database')
+    parser.add_argument('--skip-processed', type=str, required=False, default='false',
+                        help='Skip SDK releases that already been processed')
     parser.add_argument('--merge-pull-request', type=str, required=False, default='false',
                         help='Merge GitHub pull request before new processing')
     args = parser.parse_args()
@@ -351,6 +386,7 @@ def main():
 
     command_line_configuration = CommandLineConfiguration(args.build_id, args.release_in_days, args.language,
                                                           args.persist_data.lower() == 'true',
+                                                          args.skip_processed.lower() == 'true',
                                                           args.merge_pull_request.lower() == 'true')
 
     report = Report({}, AggregatedError([]))
