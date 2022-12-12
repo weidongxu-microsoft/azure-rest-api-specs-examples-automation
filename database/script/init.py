@@ -26,7 +26,7 @@ SCRIPT_FILE_TABLE = '''create table file (
     release_id  integer         not null,
 
     foreign key(release_id) references release(id)
-        on delete cascade
+        on delete cascade,
         
     unique(file)
 )'''
