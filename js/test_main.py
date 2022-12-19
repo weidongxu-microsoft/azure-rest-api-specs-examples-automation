@@ -1,5 +1,5 @@
 import unittest
-from main import get_js_example_method, get_sample_version, get_module_relative_path, create_js_examples, Release
+from main import get_js_example_method, get_sample_version, get_module_relative_path, break_down_aggregated_js_example, create_js_examples, Release
 
 
 class TestMain(unittest.TestCase):
@@ -50,6 +50,61 @@ managersUploadRegistrationCertificate().catch(console.error);
         js_example_method = get_js_example_method(lines, 0)
         self.assertEqual(3, js_example_method.line_start)
         self.assertIsNotNone(js_example_method.line_end)
+
+    def test_break_down_aggregated_js_example(self):
+        code = '''const { StorageManagementClient } = require("@azure/arm-storage");
+const { DefaultAzureCredential } = require("@azure/identity");
+
+/**
+ * This sample demonstrates how to Gets properties of a specified container.
+ *
+ * @summary Gets properties of a specified container.
+ * x-ms-original-file: specification/storage/resource-manager/Microsoft.Storage/stable/2022-09-01/examples/BlobContainersGetWithAllowProtectedAppendWritesAll.json
+ */
+async function getBlobContainersGetWithAllowProtectedAppendWritesAll() {
+  const subscriptionId = "{subscription-id}";
+  const resourceGroupName = "res9871";
+  const accountName = "sto6217";
+  const containerName = "container1634";
+  const credential = new DefaultAzureCredential();
+  const client = new StorageManagementClient(credential, subscriptionId);
+  const result = await client.blobContainers.get(resourceGroupName, accountName, containerName);
+  console.log(result);
+}
+
+getBlobContainersGetWithAllowProtectedAppendWritesAll().catch(console.error);
+
+/**
+ * This sample demonstrates how to Gets properties of a specified container.
+ *
+ * @summary Gets properties of a specified container.
+ * x-ms-original-file: specification/storage/resource-manager/Microsoft.Storage/stable/2022-09-01/examples/BlobContainersGet.json
+ */
+async function getContainers() {
+  const subscriptionId = "{subscription-id}";
+  const resourceGroupName = "res9871";
+  const accountName = "sto6217";
+  const containerName = "container1634";
+  const credential = new DefaultAzureCredential();
+  const client = new StorageManagementClient(credential, subscriptionId);
+  const result = await client.blobContainers.get(resourceGroupName, accountName, containerName);
+  console.log(result);
+}
+
+getContainers().catch(console.error);
+'''
+
+        lines = code.splitlines(keepends=True)
+
+        aggregated_js_example = break_down_aggregated_js_example(lines)
+        self.assertEqual(2, len(aggregated_js_example.methods))
+
+        self.assertEqual('* This sample demonstrates how to Gets properties of a specified container.', aggregated_js_example.methods[0].content[1].strip())
+        self.assertEqual('async function getBlobContainersGetWithAllowProtectedAppendWritesAll() {', aggregated_js_example.methods[0].content[6].strip())
+        self.assertEqual('getBlobContainersGetWithAllowProtectedAppendWritesAll().catch(console.error);', aggregated_js_example.methods[0].content[-1].strip())
+
+        self.assertEqual('async function getContainers() {', aggregated_js_example.methods[1].content[6].strip())
+        self.assertEqual('getContainers().catch(console.error);', aggregated_js_example.methods[1].content[-1].strip())
 
     @unittest.skip
     def test_get_module_relative_path(self):
