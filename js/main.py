@@ -132,7 +132,8 @@ def break_down_aggregated_js_example(lines: List[str]) -> AggregatedJsExample:
 
     if aggregated_with_main:
         # remove "dotenv.config()"
-        aggregated_js_example.class_opening = [s for s in lines if 'require("dotenv").config();' not in s]
+        aggregated_js_example.class_opening = [s for s in aggregated_js_example.class_opening
+                                               if 'require("dotenv").config();' not in s]
 
     return aggregated_js_example
 
