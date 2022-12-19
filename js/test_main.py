@@ -47,7 +47,7 @@ managersUploadRegistrationCertificate().catch(console.error);
 
         lines = code.splitlines(keepends=True)
 
-        js_example_method = get_js_example_method(lines, 0)
+        js_example_method = get_js_example_method(lines, 0, False)
         self.assertEqual(3, js_example_method.line_start)
         self.assertIsNotNone(js_example_method.line_end)
 
@@ -106,19 +106,171 @@ getContainers().catch(console.error);
         self.assertEqual('async function getContainers() {', aggregated_js_example.methods[1].content[6].strip())
         self.assertEqual('getContainers().catch(console.error);', aggregated_js_example.methods[1].content[-1].strip())
 
+    def test_break_down_aggregated_js_example_new_style(self):
+        code = '''const { SynapseManagementClient } = require("@azure/arm-synapse");
+const { DefaultAzureCredential } = require("@azure/identity");
+require("dotenv").config();
+
+/**
+ * This sample demonstrates how to Creates or updates a Sql pool data masking rule.
+ *
+ * @summary Creates or updates a Sql pool data masking rule.
+ * x-ms-original-file: specification/synapse/resource-manager/Microsoft.Synapse/stable/2021-06-01/examples/DataMaskingRuleCreateOrUpdateDefaultMax.json
+ */
+async function createOrUpdateDataMaskingRuleForDefaultMax() {
+  const subscriptionId =
+    process.env["SYNAPSE_SUBSCRIPTION_ID"] || "00000000-1111-2222-3333-444444444444";
+  const resourceGroupName = process.env["SYNAPSE_RESOURCE_GROUP"] || "sqlcrudtest-6852";
+  const workspaceName = "sqlcrudtest-2080";
+  const sqlPoolName = "sqlcrudtest-331";
+  const dataMaskingRuleName = "rule1";
+  const parameters = {
+    aliasName: "nickname",
+    columnName: "test1",
+    maskingFunction: "Default",
+    ruleState: "Enabled",
+    schemaName: "dbo",
+    tableName: "Table_1",
+  };
+  const credential = new DefaultAzureCredential();
+  const client = new SynapseManagementClient(credential, subscriptionId);
+  const result = await client.dataMaskingRules.createOrUpdate(
+    resourceGroupName,
+    workspaceName,
+    sqlPoolName,
+    dataMaskingRuleName,
+    parameters
+  );
+  console.log(result);
+}
+
+/**
+ * This sample demonstrates how to Creates or updates a Sql pool data masking rule.
+ *
+ * @summary Creates or updates a Sql pool data masking rule.
+ * x-ms-original-file: specification/synapse/resource-manager/Microsoft.Synapse/stable/2021-06-01/examples/DataMaskingRuleCreateOrUpdateDefaultMin.json
+ */
+async function createOrUpdateDataMaskingRuleForDefaultMin() {
+  const subscriptionId =
+    process.env["SYNAPSE_SUBSCRIPTION_ID"] || "00000000-1111-2222-3333-444444444444";
+  const resourceGroupName = process.env["SYNAPSE_RESOURCE_GROUP"] || "sqlcrudtest-6852";
+  const workspaceName = "sqlcrudtest-2080";
+  const sqlPoolName = "sqlcrudtest-331";
+  const dataMaskingRuleName = "rule1";
+  const parameters = {
+    columnName: "test1",
+    maskingFunction: "Default",
+    schemaName: "dbo",
+    tableName: "Table_1",
+  };
+  const credential = new DefaultAzureCredential();
+  const client = new SynapseManagementClient(credential, subscriptionId);
+  const result = await client.dataMaskingRules.createOrUpdate(
+    resourceGroupName,
+    workspaceName,
+    sqlPoolName,
+    dataMaskingRuleName,
+    parameters
+  );
+  console.log(result);
+}
+
+/**
+ * This sample demonstrates how to Creates or updates a Sql pool data masking rule.
+ *
+ * @summary Creates or updates a Sql pool data masking rule.
+ * x-ms-original-file: specification/synapse/resource-manager/Microsoft.Synapse/stable/2021-06-01/examples/DataMaskingRuleCreateOrUpdateNumber.json
+ */
+async function createOrUpdateDataMaskingRuleForNumbers() {
+  const subscriptionId =
+    process.env["SYNAPSE_SUBSCRIPTION_ID"] || "00000000-1111-2222-3333-444444444444";
+  const resourceGroupName = process.env["SYNAPSE_RESOURCE_GROUP"] || "sqlcrudtest-6852";
+  const workspaceName = "sqlcrudtest-2080";
+  const sqlPoolName = "sqlcrudtest-331";
+  const dataMaskingRuleName = "rule1";
+  const parameters = {
+    columnName: "test1",
+    maskingFunction: "Number",
+    numberFrom: "0",
+    numberTo: "2",
+    schemaName: "dbo",
+    tableName: "Table_1",
+  };
+  const credential = new DefaultAzureCredential();
+  const client = new SynapseManagementClient(credential, subscriptionId);
+  const result = await client.dataMaskingRules.createOrUpdate(
+    resourceGroupName,
+    workspaceName,
+    sqlPoolName,
+    dataMaskingRuleName,
+    parameters
+  );
+  console.log(result);
+}
+
+/**
+ * This sample demonstrates how to Creates or updates a Sql pool data masking rule.
+ *
+ * @summary Creates or updates a Sql pool data masking rule.
+ * x-ms-original-file: specification/synapse/resource-manager/Microsoft.Synapse/stable/2021-06-01/examples/DataMaskingRuleCreateOrUpdateText.json
+ */
+async function createOrUpdateDataMaskingRuleForText() {
+  const subscriptionId =
+    process.env["SYNAPSE_SUBSCRIPTION_ID"] || "00000000-1111-2222-3333-444444444444";
+  const resourceGroupName = process.env["SYNAPSE_RESOURCE_GROUP"] || "sqlcrudtest-6852";
+  const workspaceName = "sqlcrudtest-2080";
+  const sqlPoolName = "sqlcrudtest-331";
+  const dataMaskingRuleName = "rule1";
+  const parameters = {
+    columnName: "test1",
+    maskingFunction: "Text",
+    prefixSize: "1",
+    replacementString: "asdf",
+    schemaName: "dbo",
+    suffixSize: "0",
+    tableName: "Table_1",
+  };
+  const credential = new DefaultAzureCredential();
+  const client = new SynapseManagementClient(credential, subscriptionId);
+  const result = await client.dataMaskingRules.createOrUpdate(
+    resourceGroupName,
+    workspaceName,
+    sqlPoolName,
+    dataMaskingRuleName,
+    parameters
+  );
+  console.log(result);
+}
+
+async function main() {
+  createOrUpdateDataMaskingRuleForDefaultMax();
+  createOrUpdateDataMaskingRuleForDefaultMin();
+  createOrUpdateDataMaskingRuleForNumbers();
+  createOrUpdateDataMaskingRuleForText();
+}
+
+main().catch(console.error);
+'''
+
+        lines = code.splitlines(keepends=True)
+
+        aggregated_js_example = break_down_aggregated_js_example(lines)
+        self.assertEqual(4, len(aggregated_js_example.methods))
+
+        self.assertEqual('async function createOrUpdateDataMaskingRuleForDefaultMax() {', aggregated_js_example.methods[0].content[6].strip())
+
     @unittest.skip
     def test_get_module_relative_path(self):
         sdk_path = 'c:/github/azure-sdk-for-js'
         sdk_name = 'mysql-flexible'
-        module_relative_path = get_module_relative_path(sdk_name, sdk_path)
+        module_relative_path = get_module_relative_path(sdk_name, PackageType.HLC, sdk_path)
         self.assertEqual('sdk/mysql/azure-mysql-flexible', module_relative_path)
 
     @unittest.skip
     def test_create_js_examples(self):
         release = Release('@azure/arm-policyinsights_6.0.0-beta.1',
                           '@azure/arm-policyinsights',
-                          '6.0.0-beta.1',
-                          'policyinsights')
+                          '6.0.0-beta.1')
         js_module = f'{release.package}@{release.version}'
         sdk_examples_path = 'c:/github/azure-rest-api-specs-examples'
         js_examples_path = 'c:/github/azure-sdk-for-js/sdk/policyinsights/arm-policyinsights/samples/v6-beta/javascript'
