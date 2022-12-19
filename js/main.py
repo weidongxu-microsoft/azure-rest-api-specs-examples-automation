@@ -60,7 +60,7 @@ def is_aggregated_js_example(lines: List[str]) -> bool:
     return False
 
 
-def get_js_example_method(lines: List[str], start: int) -> JsExampleMethodContent:
+def get_js_example_method(lines: List[str], start: int, aggregated_with_main: bool) -> JsExampleMethodContent:
     # extract one example method, start from certain line number
 
     original_file = None
@@ -79,6 +79,9 @@ def get_js_example_method(lines: List[str], start: int) -> JsExampleMethodConten
         elif '.catch(console.error);' in line \
                 or (index > 0 and line.startswith(');') and 'console.error' in lines[index-1]):
             # end of method
+            js_example_method.line_end = index + 1
+            break
+        elif aggregated_with_main and '}' == line.strip():
             js_example_method.line_end = index + 1
             break
 
@@ -113,16 +116,24 @@ def backtrace_comments(js_example_method: JsExampleMethodContent, lines: List[st
 def break_down_aggregated_js_example(lines: List[str]) -> AggregatedJsExample:
     # break down sample Js to multiple examples
 
+    # check if it is new style with "main()"
+    aggregated_with_main = len([s for s in lines if 'async function main()' in s]) > 0
+
     aggregated_js_example = AggregatedJsExample([])
-    js_example_method = get_js_example_method(lines, 0)
+    js_example_method = get_js_example_method(lines, 0, aggregated_with_main)
     line_start = js_example_method.line_start
     line_end = js_example_method.line_end
     while js_example_method.is_valid():
         aggregated_js_example.methods.append(js_example_method)
         line_end = js_example_method.line_end
-        js_example_method = get_js_example_method(lines, js_example_method.line_end)
+        js_example_method = get_js_example_method(lines, js_example_method.line_end, aggregated_with_main)
     aggregated_js_example.class_opening = lines[0:line_start]
     aggregated_js_example.class_closing = lines[line_end:]
+
+    if aggregated_with_main:
+        # remove "dotenv.config()"
+        aggregated_js_example.class_opening = [s for s in lines if 'require("dotenv").config();' not in s]
+
     return aggregated_js_example
 
 
