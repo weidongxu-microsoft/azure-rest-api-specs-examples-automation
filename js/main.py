@@ -81,7 +81,7 @@ def get_js_example_method(lines: List[str], start: int, aggregated_with_main: bo
             # end of method
             js_example_method.line_end = index + 1
             break
-        elif aggregated_with_main and '}' == line.strip():
+        elif aggregated_with_main and '}' == line.rstrip():
             js_example_method.line_end = index + 1
             break
 

@@ -1,5 +1,6 @@
 import unittest
-from main import get_js_example_method, get_sample_version, get_module_relative_path, break_down_aggregated_js_example, create_js_examples, Release
+from main import get_js_example_method, get_sample_version, get_module_relative_path, \
+    break_down_aggregated_js_example, format_js, create_js_examples, Release
 
 
 class TestMain(unittest.TestCase):
@@ -106,7 +107,7 @@ getContainers().catch(console.error);
         self.assertEqual('async function getContainers() {', aggregated_js_example.methods[1].content[6].strip())
         self.assertEqual('getContainers().catch(console.error);', aggregated_js_example.methods[1].content[-1].strip())
 
-    def test_break_down_aggregated_js_example_new_style(self):
+    def test_break_down_aggregated_js_example_new_style_multiple(self):
         code = '''const { SynapseManagementClient } = require("@azure/arm-synapse");
 const { DefaultAzureCredential } = require("@azure/identity");
 require("dotenv").config();
@@ -258,6 +259,57 @@ main().catch(console.error);
         self.assertEqual(4, len(aggregated_js_example.methods))
 
         self.assertEqual('async function createOrUpdateDataMaskingRuleForDefaultMax() {', aggregated_js_example.methods[0].content[6].strip())
+
+    def test_break_down_aggregated_js_example_new_style_single(self):
+        code = '''const { SynapseManagementClient } = require("@azure/arm-synapse");
+const { DefaultAzureCredential } = require("@azure/identity");
+require("dotenv").config();
+
+/**
+ * This sample demonstrates how to Lists auditing settings of a Sql pool.
+ *
+ * @summary Lists auditing settings of a Sql pool.
+ * x-ms-original-file: specification/synapse/resource-manager/Microsoft.Synapse/stable/2021-06-01/examples/SqlPoolAuditingSettingsList.json
+ */
+async function listAuditSettingsOfADatabase() {
+  const subscriptionId =
+    process.env["SYNAPSE_SUBSCRIPTION_ID"] || "00000000-1111-2222-3333-444444444444";
+  const resourceGroupName = process.env["SYNAPSE_RESOURCE_GROUP"] || "blobauditingtest-6852";
+  const workspaceName = "blobauditingtest-2080";
+  const sqlPoolName = "testdb";
+  const credential = new DefaultAzureCredential();
+  const client = new SynapseManagementClient(credential, subscriptionId);
+  const resArray = new Array();
+  for await (let item of client.sqlPoolBlobAuditingPolicies.listBySqlPool(
+    resourceGroupName,
+    workspaceName,
+    sqlPoolName
+  )) {
+    resArray.push(item);
+  }
+  console.log(resArray);
+}
+
+async function main() {
+  listAuditSettingsOfADatabase();
+}
+
+main().catch(console.error);
+'''
+
+        lines = code.splitlines(keepends=True)
+
+        aggregated_js_example = break_down_aggregated_js_example(lines)
+        self.assertEqual(1, len(aggregated_js_example.methods))
+
+        self.assertEqual(3, len(aggregated_js_example.class_opening))
+
+        self.assertEqual('async function listAuditSettingsOfADatabase() {',
+                         aggregated_js_example.methods[0].content[6].strip())
+        self.assertEqual('}', aggregated_js_example.methods[0].content[-1].rstrip())
+
+        example_lines = aggregated_js_example.class_opening + aggregated_js_example.methods[0].content
+        example_lines = format_js(example_lines)
 
     @unittest.skip
     def test_get_module_relative_path(self):
