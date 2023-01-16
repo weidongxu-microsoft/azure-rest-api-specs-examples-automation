@@ -85,7 +85,7 @@ def get_dotnet_using_statements(lines: List[str]) -> List[str]:
     for line in lines:
         if line.startswith('using '):
             lines_using_statements.append(line)
-        elif line.startswith('namespace '):
+        elif line.startswith('namespace ') and not line.rstrip().endswith(".Samples"):
             namespace = line[len('namespace '):].strip()
             lines_using_statements.append(f'using {namespace};\n')
             break
