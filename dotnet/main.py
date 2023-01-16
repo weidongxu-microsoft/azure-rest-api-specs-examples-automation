@@ -268,9 +268,14 @@ def main():
                       config['release']['package'],
                       config['release']['version'])
 
+    # samples/Generated/Samples
     module_relative_path_local = get_module_relative_path(release.package, sdk_path)
-    dotnet_examples_relative_path = path.join(module_relative_path_local, 'tests', 'Generated', 'Samples')
+    dotnet_examples_relative_path = path.join(module_relative_path_local, 'samples', 'Generated', 'Samples')
     dotnet_examples_path = path.join(sdk_path, dotnet_examples_relative_path)
+    if not path.exists(dotnet_examples_path):
+        # fallback to tests/Generated/Samples
+        dotnet_examples_relative_path = path.join(module_relative_path_local, 'tests', 'Generated', 'Samples')
+        dotnet_examples_path = path.join(sdk_path, dotnet_examples_relative_path)
 
     dotnet_module = f'{release.package},{release.version}'
 
