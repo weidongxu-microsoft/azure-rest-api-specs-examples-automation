@@ -26,5 +26,5 @@ jobs:
           version: '1.18'
 
       - script: |
-          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(github-token) --release-in-days=90 --skip-processed=true --persist-data=true --merge-pull-request=true
+          ./automation/main.sh --build-id=$(Build.BuildId) --github-token=$(github-token) --release-in-days=360 --skip-processed=true --persist-data=true --merge-pull-request=true
         displayName: 'Collect examples'
