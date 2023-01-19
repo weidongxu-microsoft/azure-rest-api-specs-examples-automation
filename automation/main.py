@@ -349,7 +349,8 @@ def is_dotnet_samples_available(sdk: SdkConfiguration, release: Release, sdk_pat
             candidate_sdk_paths = [path.relpath(p, sdk_path) for p in candidate_sdk_paths]
             module_relative_path = candidate_sdk_paths[0]
         else:
-            raise RuntimeError(f'Source folder not found for SDK {sdk_name}')
+            logging.warning(f'Source folder not found for SDK {sdk_name}')
+            return ret
         dotnet_examples_relative_path = path.join(module_relative_path, 'samples', 'Generated', 'Samples')
         dotnet_examples_path = path.join(sdk_path, dotnet_examples_relative_path)
         if path.exists(dotnet_examples_path):
