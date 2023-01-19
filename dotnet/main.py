@@ -127,7 +127,7 @@ def process_dotnet_example(filepath: str) -> List[DotNetExample]:
     # process aggregated DotNet sample to examples
 
     filename = path.basename(filepath)
-    logging.info(f'Processing Js aggregated sample: {filename}')
+    logging.info(f'Processing DotNet aggregated sample: {filename}')
 
     with open(filepath, encoding='utf-8') as f:
         lines = f.readlines()
@@ -137,7 +137,7 @@ def process_dotnet_example(filepath: str) -> List[DotNetExample]:
         aggregated_dotnet_example = break_down_aggregated_dotnet_example(lines)
         for dotnet_example_method in aggregated_dotnet_example.methods:
             if dotnet_example_method.is_valid():
-                logging.info(f'Processing Js example: {dotnet_example_method.example_relative_path}')
+                logging.info(f'Processing DotNet example: {dotnet_example_method.example_relative_path}')
 
                 # re-construct the example class, from example method
                 example_lines = aggregated_dotnet_example.class_opening + format_dotnet(dotnet_example_method.content)

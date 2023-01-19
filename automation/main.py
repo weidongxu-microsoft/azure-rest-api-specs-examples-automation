@@ -275,7 +275,7 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
 
     logging.info(f'Processing sdk: {sdk.name}')
     count = 0
-    releases = []
+    releases: List[Release] = []
     repo = GitHubRepository(sdk.repository_owner, sdk.repository_name, github_token)
     # since there is no ordering from GitHub, just get all releases (exclude draft=True), and hope paging is correct
     for page in itertools.count(start=1):
@@ -300,6 +300,10 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
             report.aggregated_error.errors.append(e)
             break
     logging.info(f'Count of all releases: {count}')
+
+    releases.sort(key=lambda r: r.date, reverse=True)
+    for release in releases:
+        logging.info(f'Candidate release tag: {release.tag}, on {release.date.date()}')
 
     processed_release_tags = set()
     if operation.skip_processed:
