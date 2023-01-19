@@ -10,6 +10,7 @@ import json
 import argparse
 import logging
 import itertools
+import glob
 
 from models import *
 from github import GitHubRepository
@@ -75,7 +76,7 @@ def merge_pull_requests(operation: OperationConfiguration):
 
 
 def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release,
-                    report: Report):
+                    report: Report, sdk_repo_path: str):
     # process per release
 
     logging.info(f'Processing release: {release.tag}')
@@ -86,7 +87,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
     logging.info(f'Work directory: {tmp_path}')
     try:
         example_repo_path = path.join(tmp_path, tmp_example_folder)
-        sdk_repo_path = path.join(tmp_path, tmp_sdk_folder)
+        # sdk_repo_path = path.join(tmp_path, tmp_sdk_folder)
         spec_repo_path = path.join(tmp_root_path, tmp_spec_folder)
 
         # checkout azure-rest-api-specs-examples repo
@@ -98,16 +99,16 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
         logging.info('Command line: ' + ' '.join(cmd))
         subprocess.check_call(cmd, cwd=tmp_path)
 
-        # checkout sdk repo
-        cmd = ['git', 'clone',
-               '-c', 'advice.detachedHead=false',
-               '--quiet',
-               '--depth', '1',
-               '--branch', release.tag,
-               sdk.repository, sdk_repo_path]
-        logging.info(f'Checking out repository: {sdk.repository}')
-        logging.info('Command line: ' + ' '.join(cmd))
-        subprocess.check_call(cmd, cwd=tmp_path)
+        # # checkout sdk repo
+        # cmd = ['git', 'clone',
+        #        '-c', 'advice.detachedHead=false',
+        #        '--quiet',
+        #        '--depth', '1',
+        #        '--branch', release.tag,
+        #        sdk.repository, sdk_repo_path]
+        # logging.info(f'Checking out repository: {sdk.repository}')
+        # logging.info('Command line: ' + ' '.join(cmd))
+        # subprocess.check_call(cmd, cwd=tmp_path)
 
         # prepare input.json
         input_json_path = path.join(tmp_path, 'input.json')
@@ -306,6 +307,20 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
         processed_releases = query_releases_in_database(sdk.language)
         processed_release_tags.update([r.tag for r in processed_releases])
 
+    # checkout sdk repo
+    tmp_root_path = path.join(root_path, tmp_folder)
+    os.makedirs(tmp_root_path, exist_ok=True)
+    sdk_repo_path = path.join(tmp_root_path, 'sdk')
+    cmd = ['git', 'clone',
+           '-c', 'advice.detachedHead=false',
+           '--quiet',
+           '--depth', '1',
+           '--branch', 'main',
+           sdk.repository, sdk_repo_path]
+    logging.info(f'Checking out repository: {sdk.repository}')
+    logging.info('Command line: ' + ' '.join(cmd))
+    subprocess.check_call(cmd, cwd=tmp_root_path)
+
     processed_release_packages = set()
     for release in releases:
         if release.tag in processed_release_tags:
@@ -316,8 +331,28 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
         elif release.package in sdk.ignored_packages:
             logging.info(f'Skip ignored package: {release.tag}')
         else:
-            process_release(operation, sdk, release, report)
-            processed_release_packages.add(release.package)
+            if is_dotnet_samples_available(sdk, release, sdk_repo_path):
+                process_release(operation, sdk, release, report, sdk_repo_path)
+                processed_release_packages.add(release.package)
+
+
+def is_dotnet_samples_available(sdk: SdkConfiguration, release: Release, sdk_path: str) -> bool:
+    ret = False
+    if sdk.language == 'dotnet':
+        sdk_name = release.package
+        candidate_sdk_paths = glob.glob(path.join(sdk_path, f'sdk/*/{sdk_name}'))
+        if len(candidate_sdk_paths) > 0:
+            candidate_sdk_paths = [path.relpath(p, sdk_path) for p in candidate_sdk_paths]
+            logging.info(
+                f'Use first item of {candidate_sdk_paths} for SDK folder')
+            module_relative_path = candidate_sdk_paths[0]
+        else:
+            raise RuntimeError(f'Source folder not found for SDK {sdk_name}')
+        dotnet_examples_relative_path = path.join(module_relative_path, 'samples', 'Generated', 'Samples')
+        dotnet_examples_path = path.join(sdk_path, dotnet_examples_relative_path)
+        if path.exists(dotnet_examples_path):
+            ret = True
+    return ret
 
 
 def process(command_line: CommandLineConfiguration, report: Report):
