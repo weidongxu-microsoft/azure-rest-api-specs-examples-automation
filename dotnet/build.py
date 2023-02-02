@@ -27,6 +27,7 @@ class DotNetBuild:
     def build(self) -> DotNetBuildResult:
         with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir_name:
             # format and validate go files
+            current_example = None
             try:
                 logging.info('Initialize project')
                 # project
@@ -52,6 +53,7 @@ class DotNetBuild:
                 file_no = 0
                 max_file_count = 10  # TODO: for now, only build for first 10 examples
                 for example in self.examples:
+                    current_example = example
                     file_no += 1
                     if file_no > max_file_count:
                         break
@@ -67,6 +69,8 @@ class DotNetBuild:
 
             except subprocess.CalledProcessError as error:
                 logging.error(f'Call error: {error}')
+                if current_example:
+                    logging.error(f'Program.cs\n{current_example.content}')
                 return DotNetBuildResult(False, [])
 
             return DotNetBuildResult(True, self.examples)
