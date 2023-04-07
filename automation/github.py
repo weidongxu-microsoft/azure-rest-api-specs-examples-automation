@@ -14,14 +14,14 @@ class GitHubRepository:
         self.name = name
         self.token = token
 
-    def create_pull_request(self, title: str, head: str) -> int:
+    def create_pull_request(self, title: str, head: str, base: str) -> int:
         logging.info(f'Create pull request: {head}')
 
         request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls'
         request_body = {
             'title': title,
             'head': head,
-            'base': 'main'
+            'base': base
         }
         pull_request_response = requests.post(request_uri,
                                               json=request_body,

@@ -28,9 +28,9 @@ tmp_spec_folder: str = 'spec'
 tmp_example_folder: str = 'example'
 tmp_sdk_folder: str = 'sdk'
 
-automation_repo = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
-database_branch = 'database'
-database_folder = 'db'
+automation_repo: str = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
+database_branch: str = 'database'
+database_folder: str = 'db'
 
 
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
@@ -202,7 +202,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 # create github pull request
                 head = f'{operation.repository_owner}:{branch}'
                 repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
-                pull_number = repo.create_pull_request(title, head)
+                pull_number = repo.create_pull_request(title, head, 'main')
 
                 if operation.persist_data:
                     # commit changes to database
