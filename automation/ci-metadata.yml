@@ -14,7 +14,7 @@ variables:
 - group: azfluent
 
 jobs:
-  - job: Automation Metadata
+  - job: Automation
     timeoutInMinutes: 10
 
     pool:
