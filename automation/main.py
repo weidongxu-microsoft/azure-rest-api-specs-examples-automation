@@ -28,9 +28,9 @@ tmp_spec_folder: str = 'spec'
 tmp_example_folder: str = 'example'
 tmp_sdk_folder: str = 'sdk'
 
-automation_repo = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
-database_branch = 'database'
-database_folder = 'db'
+automation_repo: str = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
+database_branch: str = 'database'
+database_folder: str = 'db'
 
 
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
