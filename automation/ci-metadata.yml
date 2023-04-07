@@ -22,5 +22,5 @@ jobs:
 
     steps:
       - script: |
-          python3 eng/script/export_metadata.py --github-token=$(github-token)
+          python3 automation/export_metadata.py --github-token=$(github-token)
         displayName: 'Export metadata'

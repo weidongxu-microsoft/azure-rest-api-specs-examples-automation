@@ -7,8 +7,7 @@ import csv
 import datetime
 import subprocess
 import re
-
-from ...automation.github import GitHubRepository
+from github import GitHubRepository
 
 
 example_repo: str = 'https://github.com/Azure/azure-rest-api-specs-examples'
@@ -27,7 +26,7 @@ def main():
                         datefmt='%Y-%m-%d %X')
 
     script_path = path.abspath(path.dirname(sys.argv[0]))
-    root_path = path.abspath(path.join(script_path, '../..'))
+    root_path = path.abspath(path.join(script_path, '..'))
 
     # argparse
     parser = argparse.ArgumentParser(description='')
