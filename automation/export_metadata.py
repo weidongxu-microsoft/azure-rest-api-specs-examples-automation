@@ -107,7 +107,7 @@ def main():
     subprocess.check_call(cmd, cwd=example_metadata_path)
 
     # git checkout new branch
-    date_str = datetime.datetime.now().strftime('%Y%m%d')
+    date_str = datetime.datetime.now().strftime('%Y-%m-%d')
     branch = f'automation-metadata-{date_str}'
     cmd = ['git', 'checkout', '-b', branch]
     logging.info('Command line: ' + ' '.join(cmd))
