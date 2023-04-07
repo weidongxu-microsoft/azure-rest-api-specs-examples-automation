@@ -135,7 +135,7 @@ def main():
     name = repository_name(example_repo)
     head = f'{owner}:{branch}'
     repo = GitHubRepository(owner, name, github_token)
-    pull_number = repo.create_pull_request(title, head)
+    pull_number = repo.create_pull_request(title, head, metadata_branch)
     logging.info(f'Pull number {pull_number}')
 
 

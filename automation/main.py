@@ -202,7 +202,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 # create github pull request
                 head = f'{operation.repository_owner}:{branch}'
                 repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
-                pull_number = repo.create_pull_request(title, head)
+                pull_number = repo.create_pull_request(title, head, 'main')
 
                 if operation.persist_data:
                     # commit changes to database
