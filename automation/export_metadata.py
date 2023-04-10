@@ -136,7 +136,8 @@ def main():
     head = f'{owner}:{branch}'
     repo = GitHubRepository(owner, name, github_token)
     pull_number = repo.create_pull_request(title, head, metadata_branch)
-    logging.info(f'Pull number {pull_number}')
+    repo.add_label(pull_number, ['auto-merge'])
+    logging.info(f'succeeded, pull number {pull_number}')
 
 
 def repository_owner(repository: str) -> str:

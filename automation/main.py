@@ -69,9 +69,11 @@ def merge_pull_requests(operation: OperationConfiguration):
     for pull_request in pull_requests:
         title = pull_request['title']
         if title.startswith('[Automation]'):
-            repo.merge_pull_request(pull_request)
-            # wait a few seconds to avoid 409
-            time.sleep(5)
+            if 'labels' in pull_request and any(label['name'] == 'auto-merge' for label in pull_request['labels']):
+                repo.merge_pull_request(pull_request)
+
+                # wait a few seconds to avoid 409
+                time.sleep(5)
 
 
 def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, release: Release,
@@ -203,6 +205,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 head = f'{operation.repository_owner}:{branch}'
                 repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
                 pull_number = repo.create_pull_request(title, head, 'main')
+                repo.add_label(pull_number, ['auto-merge'])
 
                 if operation.persist_data:
                     # commit changes to database
