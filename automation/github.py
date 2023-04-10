@@ -25,7 +25,7 @@ class GitHubRepository:
         }
         pull_request_response = requests.post(request_uri,
                                               json=request_body,
-                                              headers={'Authorization': f'token {self.token}'})
+                                              headers=self._headers())
         if pull_request_response.status_code == 201:
             logging.info('Pull request created')
             return pull_request_response.json()['number']
@@ -38,7 +38,7 @@ class GitHubRepository:
 
         request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/pulls?per_page=100'
         pull_request_response = requests.get(request_uri,
-                                             headers={'Authorization': f'token {self.token}'})
+                                             headers=self._headers())
         if pull_request_response.status_code == 200:
             logging.info('Pull request created')
             return pull_request_response.json()
@@ -57,21 +57,42 @@ class GitHubRepository:
             'commit_title': title,
             'merge_method': 'squash'
         }
-        pull_request_response = requests.put(request_uri,
-                                             json=request_body,
-                                             headers={'Authorization': f'token {self.token}'})
-        if pull_request_response.status_code == 200:
+        merge_response = requests.put(request_uri,
+                                      json=request_body,
+                                      headers=self._headers())
+        if merge_response.status_code == 200:
             logging.info('Pull request merged')
         else:
-            logging.error(f'Request failed: {pull_request_response.status_code}\n{pull_request_response.json()}')
+            logging.error(f'Request failed: {merge_response.status_code}\n{merge_response.json()}')
+            merge_response.raise_for_status()
 
     def list_releases(self, per_page: int, page: int = 1) -> List[Dict[str, Any]]:
         request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/releases'
         releases_response = requests.get(request_uri,
                                          params={'per_page': per_page, 'page': page},
-                                         headers={'Authorization': f'token {self.token}'})
+                                         headers=self._headers())
         if releases_response.status_code == 200:
             return releases_response.json()
         else:
             logging.error(f'Request failed: {releases_response.status_code}\n{releases_response.json()}')
             releases_response.raise_for_status()
+
+    def add_label(self, pull_number: int, labels: List[str]):
+        request_uri = f'{self.api_host}/repos/{self.owner}/{self.name}/issues/{pull_number}/labels'
+        request_body = {
+            'labels': labels
+        }
+        add_label_response = requests.post(request_uri,
+                                           json=request_body,
+                                           headers=self._headers())
+        if add_label_response.status_code == 200:
+            logging.info('Label added')
+        else:
+            logging.error(f'Request failed: {add_label_response.status_code}\n{add_label_response.json()}')
+            add_label_response.raise_for_status()
+
+    def _headers(self) -> Dict[str, str]:
+        return {
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Authorization': f'token {self.token}'
+        }
