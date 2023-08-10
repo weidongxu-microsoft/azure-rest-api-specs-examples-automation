@@ -30,10 +30,10 @@ class GoVet:
             self.golang_version = match.group(1)
 
         self.modules = []
-        match = re.search(r'github\.com/Azure/azure-sdk-for-go/sdk/azcore (v.*)', go_mod, re.MULTILINE)
+        match = re.search(r'github\.com/Azure/azure-sdk-for-go/sdk/azcore (v[.\-\w]*)', go_mod, re.MULTILINE)
         if match:
             self.modules.append('github.com/Azure/azure-sdk-for-go/sdk/azcore@' + match.group(1))
-        match = re.search(r'github\.com/Azure/azure-sdk-for-go/sdk/azidentity (v.*)', go_mod, re.MULTILINE)
+        match = re.search(r'github\.com/Azure/azure-sdk-for-go/sdk/azidentity (v[.\-\w]*)', go_mod, re.MULTILINE)
         if match:
             self.modules.append('github.com/Azure/azure-sdk-for-go/sdk/azidentity@' + match.group(1))
 
