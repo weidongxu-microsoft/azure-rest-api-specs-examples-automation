@@ -37,8 +37,8 @@ class DotNetBuild:
                 cmd = ['dotnet', 'add', 'package', 'Azure.Identity']
                 check_call(cmd, tmp_dir_name)
 
-                cmd = ['dotnet', 'add', 'package', 'Azure.ResourceManager']
-                check_call(cmd, tmp_dir_name)
+                # cmd = ['dotnet', 'add', 'package', 'Azure.ResourceManager']
+                # check_call(cmd, tmp_dir_name)
 
                 cmd = ['dotnet', 'add', 'package', self.module, '--version', self.module_version]
                 check_call(cmd, tmp_dir_name)
