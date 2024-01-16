@@ -154,6 +154,8 @@ class CsvDatabase:
 
         release_id = self.release_db.append([name, language, tag, package, version, date_epoch, date_str])
 
+        # remove 'file' that already in DB -- here 'file' is unique
+        self.file_db.rows = [row[1] not in files for row in self.file_db.rows]
         for file in files:
             self.file_db.append([file, release_id])
 
