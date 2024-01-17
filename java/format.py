@@ -1,4 +1,5 @@
 from os import path
+import shutil
 import platform
 import subprocess
 import tempfile
