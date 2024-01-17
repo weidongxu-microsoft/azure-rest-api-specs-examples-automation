@@ -1,7 +1,7 @@
 import unittest
 from os import path
 
-from modules import JavaExample, JavaFormatResult
+from modules import JavaExample
 from format import JavaFormat
 
 
