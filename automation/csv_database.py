@@ -27,7 +27,7 @@ class DatabaseInternal:
         self.rows = []
         for row in reader:
             self.rows.append(row)
-            self.next_id = int(row[0]) + 1
+            self.next_id = max(self.next_id, int(row[0]) + 1)
 
     def append(self, row) -> str:
         # insert a row, return the id of the row
