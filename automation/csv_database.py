@@ -19,7 +19,7 @@ metadata_branch: str = 'metadata'
 @dataclasses.dataclass(eq=True)
 class DatabaseInternal:
     rows: List[List]
-    next_id: int
+    next_id: int = 1
 
     def __init__(self, reader: csv.DictReader):
         next(reader, None)  # skip header row
