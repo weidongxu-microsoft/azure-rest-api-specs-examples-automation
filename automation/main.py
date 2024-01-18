@@ -13,24 +13,19 @@ import itertools
 
 from models import *
 from github import GitHubRepository
-try:
-    from database import Database
-except ImportError:
-    pass
+from csv_database import CsvDatabase
 
 
 github_token: str
 root_path: str = '.'
+
+csv_database: CsvDatabase
 
 clean_tmp_dir: bool = True
 tmp_folder: str = 'tmp'
 tmp_spec_folder: str = 'spec'
 tmp_example_folder: str = 'example'
 tmp_sdk_folder: str = 'sdk'
-
-automation_repo: str = 'https://github.com/weidongxu-microsoft/azure-rest-api-specs-examples-automation'
-database_branch: str = 'database'
-database_folder: str = 'db'
 
 
 def load_configuration(command_line: CommandLineConfiguration) -> Configuration:
@@ -206,15 +201,23 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
                 pull_number = repo.create_pull_request(title, head, 'main')
                 repo.add_label(pull_number, ['auto-merge'])
+            except Exception as e:
+                logging.error(f'Error: {e}')
+                report.statuses[release.tag] = 'failed to create pull request'
+                report.aggregated_error.errors.append(e)
+                return
 
+            try:
                 if operation.persist_data:
                     # commit changes to database
                     commit_database(release_name, sdk.language, release, files)
-
-                report.statuses[release.tag] = f'succeeded, {len(changed_files)} files changed, pull number {pull_number}'
             except Exception as e:
-                report.statuses[release.tag] = 'failed to create pull request'
+                logging.error(f'Error: {e}')
+                report.statuses[release.tag] = 'failed to update database'
                 report.aggregated_error.errors.append(e)
+                return
+
+            report.statuses[release.tag] = f'succeeded, {len(changed_files)} files changed, pull number {pull_number}'
 
     except subprocess.CalledProcessError as e:
         logging.error(f'Call error: {e}')
@@ -228,12 +231,7 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
 def query_releases_in_database(language: str) -> List[Release]:
     # query local database on processed releases
 
-    tmp_root_path = path.join(root_path, tmp_folder)
-    database_path = path.join(tmp_root_path, database_folder)
-
-    database_filename = 'examples.db'
-    database = Database(path.join(database_path, database_filename))
-    return database.query_releases(language)
+    return csv_database.query_releases(language)
 
 
 def commit_database(release_name: str, language: str, release: Release, changed_files: List[str]):
@@ -242,35 +240,12 @@ def commit_database(release_name: str, language: str, release: Release, changed_
     # exclude metadata JSON
     changed_files = [file for file in changed_files if not file.endswith('.json')]
 
-    tmp_root_path = path.join(root_path, tmp_folder)
-    database_path = path.join(tmp_root_path, database_folder)
-
-    database_filename = 'examples.db'
-    database = Database(path.join(database_path, database_filename))
-    database_succeeded = database.new_release(
-        release_name, language, release.tag, release.package, release.version, release.date, changed_files)
-    if database_succeeded:
-        # git add
-        cmd = ['git', 'add', database_filename]
-        logging.info('Command line: ' + ' '.join(cmd))
-        subprocess.check_call(cmd, cwd=database_path)
-
-        # git commit
-        title = f'[Automation] Update database for {language}#{release.tag}'
-        logging.info(f'git commit: {title}')
-        cmd = ['git',
-               '-c', 'user.name=azure-sdk',
-               '-c', 'user.email=azuresdk@microsoft.com',
-               'commit', '-m', title]
-        logging.info('Command line: ' + ' '.join(cmd))
-        subprocess.check_call(cmd, cwd=database_path)
-
-        # git push
-        remote_uri = 'https://' + github_token + '@' + automation_repo[len('https://'):]
-        cmd = ['git', 'push', remote_uri, database_branch]
-        # do not print this as it contains token
-        # logging.info('Command line: ' + ' '.join(cmd))
-        subprocess.check_call(cmd, cwd=database_path)
+    if changed_files:
+        database_succeeded = csv_database.new_release(
+            release_name, language, release.tag, release.package, release.version, release.date, changed_files)
+        if database_succeeded:
+            csv_database.dump()
+            csv_database.commit(release_name)
 
 
 def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report: Report):
@@ -346,19 +321,18 @@ def process(command_line: CommandLineConfiguration, report: Report):
     logging.info('Command line: ' + ' '.join(cmd))
     subprocess.check_call(cmd, cwd=tmp_root_path)
 
-    # checkout database
-    database_path = path.join(tmp_root_path, database_folder)
-    cmd = ['git', 'clone',
-           '--quiet',
-           '--branch', database_branch,
-           automation_repo, database_path]
-    logging.info(f'Checking out repository: {automation_repo}, branch {database_branch}')
-    logging.info('Command line: ' + ' '.join(cmd))
-    subprocess.check_call(cmd, cwd=tmp_root_path)
+    # checkout and load database
+    global csv_database
+    csv_database = CsvDatabase(tmp_root_path)
+    csv_database.checkout()
+    csv_database.load()
 
     for sdk_configuration in configuration.sdks:
         if not command_line.language or command_line.language == sdk_configuration.language:
             process_sdk(configuration.operation, sdk_configuration, report)
+
+    if command_line.persist_data:
+        csv_database.push(github_token)
 
 
 def main():
