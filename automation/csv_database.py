@@ -49,7 +49,7 @@ class CsvDatabase:
     release_db: DatabaseInternal
     file_db: DatabaseInternal
 
-    branch: str
+    branch: str = None
     date_str: str
 
     def __init__(self, work_dir: str):
@@ -154,10 +154,12 @@ class CsvDatabase:
 
         release_id = self.release_db.append([name, language, tag, package, version, date_epoch, date_str])
 
-        # remove 'file' that already in DB -- here 'file' is unique
-        self.file_db.rows = [row[1] not in files for row in self.file_db.rows]
+        # remove 'file' that already in DB -- maintain column 'file' be unique
+        self.file_db.rows = [row for row in self.file_db.rows if row[1] not in files]
         for file in files:
             self.file_db.append([file, release_id])
+
+        return True
 
     def query_releases(self, language: str) -> List[Release]:
         # query processed releases
