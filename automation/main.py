@@ -201,15 +201,23 @@ def process_release(operation: OperationConfiguration, sdk: SdkConfiguration, re
                 repo = GitHubRepository(operation.repository_owner, operation.repository_name, github_token)
                 pull_number = repo.create_pull_request(title, head, 'main')
                 repo.add_label(pull_number, ['auto-merge'])
+            except Exception as e:
+                logging.error(f'Error: {e}')
+                report.statuses[release.tag] = 'failed to create pull request'
+                report.aggregated_error.errors.append(e)
+                return
 
+            try:
                 if operation.persist_data:
                     # commit changes to database
                     commit_database(release_name, sdk.language, release, files)
-
-                report.statuses[release.tag] = f'succeeded, {len(changed_files)} files changed, pull number {pull_number}'
             except Exception as e:
-                report.statuses[release.tag] = 'failed to create pull request'
+                logging.error(f'Error: {e}')
+                report.statuses[release.tag] = 'failed to update database'
                 report.aggregated_error.errors.append(e)
+                return
+
+            report.statuses[release.tag] = f'succeeded, {len(changed_files)} files changed, pull number {pull_number}'
 
     except subprocess.CalledProcessError as e:
         logging.error(f'Call error: {e}')
