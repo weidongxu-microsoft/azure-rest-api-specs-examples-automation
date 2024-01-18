@@ -1,7 +1,6 @@
 from os import path
 import logging
 import csv
-import datetime
 import subprocess
 import dataclasses
 from datetime import datetime
@@ -95,7 +94,7 @@ class CsvDatabase:
     def commit(self, tag):
         if not self.branch:
             # git checkout new branch
-            self.date_str = datetime.datetime.now().strftime('%Y-%m-%d')
+            self.date_str = datetime.now().strftime('%Y-%m-%d')
             self.branch = f'automation-metadata-{self.date_str}'
             cmd = ['git', 'checkout', '-b', self.branch]
             logging.info('Command line: ' + ' '.join(cmd))
