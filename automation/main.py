@@ -21,6 +21,10 @@ root_path: str = '.'
 
 csv_database: CsvDatabase
 
+start_time_secs: float
+
+timeout_secs: float = 45 * 60 * 60  # 45 minutes
+
 clean_tmp_dir: bool = True
 tmp_folder: str = 'tmp'
 tmp_spec_folder: str = 'spec'
@@ -251,6 +255,10 @@ def commit_database(release_name: str, language: str, release: Release, changed_
 def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report: Report):
     # process for sdk
 
+    if time.time() > start_time_secs + timeout_secs:
+        logging.warning(f"Timeout, skip sdk: {sdk.name}")
+        return
+
     logging.info(f'Processing sdk: {sdk.name}')
     count = 0
     releases: List[Release] = []
@@ -290,6 +298,10 @@ def process_sdk(operation: OperationConfiguration, sdk: SdkConfiguration, report
 
     processed_release_packages = set()
     for release in releases:
+        if time.time() > start_time_secs + timeout_secs:
+            logging.warning("Timeout, skip remaining packages")
+            break
+
         if release.tag in processed_release_tags:
             logging.info(f'Skip processed tag: {release.tag}')
             processed_release_packages.add(release.package)
@@ -338,10 +350,13 @@ def process(command_line: CommandLineConfiguration, report: Report):
 def main():
     global root_path
     global github_token
+    global start_time_secs
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s [%(levelname)s] %(message)s',
                         datefmt='%Y-%m-%d %X')
+
+    start_time_secs = time.time()
 
     script_path = path.abspath(path.dirname(sys.argv[0]))
     root_path = path.abspath(path.join(script_path, '..'))
