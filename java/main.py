@@ -83,7 +83,7 @@ def get_java_example_method(lines: List[str], start: int) -> JavaExampleMethodCo
                     break
                 else:
                     # content of original_file breaks into this line of comment
-                    original_file = original_file + line.strip()[len('*'):].strip()
+                    original_file = original_file + peek_line.strip()[len('*'):].strip()
                 peek_index += 1
         elif line.startswith('    public static void '):
             # begin of method
