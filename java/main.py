@@ -17,7 +17,7 @@ tmp_path: str
 
 namespace = 'com.azure.resourcemanager'
 
-original_file_key = '* x-ms-original-file: '
+original_file_key = '* x-ms-original-file:'
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -73,7 +73,18 @@ def get_java_example_method(lines: List[str], start: int) -> JavaExampleMethodCo
 
         line = lines[index]
         if line.strip().startswith(original_file_key):
-            original_file = line.strip()[len(original_file_key):]
+            original_file = line.strip()[len(original_file_key):].strip()
+            # merge rest of the lines
+            peek_index = index + 1
+            while peek_index < len(lines):
+                peek_line = lines[peek_index]
+                if peek_line.strip() == '*/':
+                    # end of comment block
+                    break
+                else:
+                    # content of original_file breaks into this line of comment
+                    original_file = original_file + peek_line.strip()[len('*'):].strip()
+                peek_index += 1
         elif line.startswith('    public static void '):
             # begin of method
             java_example_method.example_relative_path = original_file
@@ -82,6 +93,8 @@ def get_java_example_method(lines: List[str], start: int) -> JavaExampleMethodCo
             # end of method
             java_example_method.line_end = index + 1
             break
+
+        index += 1
 
     if java_example_method.is_valid():
         # backtrace to include javadoc and comments before the method declaration
@@ -179,7 +192,6 @@ def validate_java_examples(release: Release, java_examples: List[JavaExample]) -
     # batch validate Java examples
 
     java_format = JavaFormat(tmp_path, path.join(script_path, 'javaformat'))
-    java_format.build()
     java_format_result = java_format.format(java_examples)
 
     if java_format_result.succeeded:

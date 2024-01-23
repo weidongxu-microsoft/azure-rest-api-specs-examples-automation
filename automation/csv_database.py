@@ -34,7 +34,7 @@ class DatabaseInternal:
 
         row_id = str(self.next_id)
         row.insert(0, row_id)
-        self.next_id = self.next_id + 1
+        self.next_id += 1
         self.rows.append(row)
         return row_id
 
