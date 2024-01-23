@@ -192,7 +192,6 @@ def validate_java_examples(release: Release, java_examples: List[JavaExample]) -
     # batch validate Java examples
 
     java_format = JavaFormat(tmp_path, path.join(script_path, 'javaformat'))
-    java_format.build()
     java_format_result = java_format.format(java_examples)
 
     if java_format_result.succeeded:

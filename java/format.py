@@ -20,13 +20,12 @@ class JavaFormat:
         self.tmp_path = tmp_path
         self.maven_path = maven_path
 
-    def build(self):
-        files = ['pom.xml', 'eclipse-format-azure-sdk-for-java.xml']
-        for file in files:
-            shutil.copyfile(path.join(self.maven_path, file), path.join(self.tmp_path, file))
-
     def format(self, examples: List[JavaExample]) -> JavaFormatResult:
         with tempfile.TemporaryDirectory(dir=self.tmp_path) as tmp_dir_name:
+            files = ['pom.xml', 'eclipse-format-azure-sdk-for-java.xml']
+            for file in files:
+                shutil.copyfile(path.join(self.maven_path, file), path.join(tmp_dir_name, file))
+
             filename_no = 1
             for example in examples:
                 filename = 'Code' + str(filename_no) + '.java'
@@ -40,7 +39,7 @@ class JavaFormat:
             logging.info('Format java code')
             cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), 'spotless:apply']
             logging.info('Command line: ' + ' '.join(cmd))
-            result = subprocess.run(cmd, cwd=self.tmp_path)
+            result = subprocess.run(cmd, cwd=tmp_dir_name)
 
             if result.returncode:
                 return JavaFormatResult(False, [])
