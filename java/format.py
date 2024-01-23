@@ -38,7 +38,7 @@ class JavaFormat:
                     f.write(example.content)
 
             logging.info('Format java code')
-            cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), 'spotless:apply', '-P', 'spotless']
+            cmd = ['mvn' + ('.cmd' if OS_WINDOWS else ''), 'spotless:apply']
             logging.info('Command line: ' + ' '.join(cmd))
             result = subprocess.run(cmd, cwd=self.tmp_path)
 
