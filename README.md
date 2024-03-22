@@ -1,3 +1,5 @@
+# Automation migrated to [Azure/azure-sdk-tools](https://github.com/Azure/azure-sdk-tools/tree/main/tools/azure-rest-api-specs-examples-automation)
+
 # Automation for SDK Examples
 
 A pipeline tool for collecting SDK examples for [azure-rest-api-specs-examples](https://github.com/Azure/azure-rest-api-specs-examples).
